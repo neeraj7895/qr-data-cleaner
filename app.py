@@ -97,7 +97,7 @@ def clean_data(df, source_file=None):
 
     # 11. Clear unwanted columns
     clear_cols = [
-        "Turnover Type", "Acceptance Type", "Ownership Type", "MCC", "Email ID", "Source_File", "Bank Cust  ID",
+        "Turnover Type", "Acceptance Type", "Ownership Type", "MCC", "Email ID", "Source_File", "Bank Cust ID",
         "State Code (GST)", "Latitude", "Longitude", "District"
     ]
     for col in clear_cols:
@@ -251,3 +251,4 @@ elif multiple_files:
     with st.expander("📝 View Cleaning Logs"):
         for log in all_logs:
             st.write("✔️", log)
+
