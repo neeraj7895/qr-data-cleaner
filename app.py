@@ -5,6 +5,20 @@ import io
 import os
 from openpyxl import load_workbook
 from openpyxl.worksheet.datavalidation import DataValidation
+import pyttsx3   # 🔊 Voice Engine
+
+
+# ------------------ VOICE WELCOME ------------------ #
+def engine_voice():
+    engine = pyttsx3.init()
+    voices = engine.getProperty('voices')
+    engine.setProperty('voice', voices[0].id)   # 0 = male, 1 = female (depends on system voices)
+    engine.setProperty('rate', 150)             # Speaking speed
+    engine.say("Welcome to the Operations QR Data Cleaner")
+    engine.runAndWait()
+
+# Speak once at startup
+engine_voice()
 
 
 # ------------------ CLEANING FUNCTION ------------------ #
@@ -251,4 +265,3 @@ elif multiple_files:
     with st.expander("📝 View Cleaning Logs"):
         for log in all_logs:
             st.write("✔️", log)
-
