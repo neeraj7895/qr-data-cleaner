@@ -58,7 +58,7 @@ def clean_data(df, source_file=None):
     for col in ["Address Line 1", "Address Line 2"]:
         if col in df.columns:
             df[col] = df[col].astype(str).str.replace(
-                r"[,\.\#\&\)\(]:", " ", regex=True
+                r"[,\.\#\&\):\(]", " ", regex=True
             ).str.strip()
             df[col] = df[col].replace("nan", "").replace("NaN", "").replace("None", "")
 
@@ -251,4 +251,5 @@ elif multiple_files:
     with st.expander("📝 View Cleaning Logs"):
         for log in all_logs:
             st.write("✔️", log)
+
 
