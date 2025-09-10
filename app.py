@@ -76,7 +76,7 @@ def clean_data(df, source_file=None):
     name_cols = ["First Name", "Middle Name", "Last Name", "Entity Name", "Account Holder Name"]
     for col in name_cols:
         if col in df.columns:
-            df[col] = df[col].astype(str).str.replace(r"[\/()&#,.;']", " ", regex=True).str.strip()
+            df[col] = df[col].astype(str).str.replace(r"[/\|()&#,.;']", " ", regex=True).str.strip()
             df[col] = df[col].replace("nan", "").replace("NaN", "").replace("None", "")
 
     # 8. Entity vs Personal Names
@@ -251,6 +251,7 @@ elif multiple_files:
     with st.expander("📝 View Cleaning Logs"):
         for log in all_logs:
             st.write("✔️", log)
+
 
 
 
