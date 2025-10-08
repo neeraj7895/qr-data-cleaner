@@ -20,13 +20,24 @@ def clean_data(df, source_file=None):
         df = df[df["Mobile No"].notna() & (df["Mobile No"].astype(str).str.strip() != "")]
         after = len(df)
         logs.append(f"Removed {before - after} rows with blank Mobile No")
-    
+
     # 2. Remove duplicate Mobile numbers → Keep first occurrence
     if "Mobile No" in df.columns:
         before = len(df)
         df = df.drop_duplicates(subset=["Mobile No"], keep="first").copy()
         after = len(df)
         logs.append(f"Removed {before - after} duplicate row(s) by Mobile No (kept first occurrence)")
+
+        # --- NEW RULE: Clean 12-digit mobile numbers starting with '91' ---
+        def clean_mobile(x):
+            x = str(x).strip()
+            x = re.sub(r"\D", "", x)  # remove non-digit characters like +, spaces, dashes
+            if len(x) == 12 and x.startswith("91"):
+                x = x[2:]  # remove leading '91'
+            return x
+
+        df["Mobile No"] = df["Mobile No"].apply(clean_mobile)
+        logs.append("Cleaned 12-digit mobile numbers by removing '91' prefix where applicable")
 
     # 3. Dates → format 'dd-mm-yyyy with prefix '
     for col in ["DOB", "DOI", "Account Opening Date"]:
@@ -251,8 +262,3 @@ elif multiple_files:
     with st.expander("📝 View Cleaning Logs"):
         for log in all_logs:
             st.write("✔️", log)
-
-
-
-
-
