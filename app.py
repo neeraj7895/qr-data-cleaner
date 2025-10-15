@@ -40,16 +40,34 @@ def clean_data(df, source_file=None):
         logs.append("Cleaned 12-digit mobile numbers by removing '91' prefix where applicable")
 
     # 3. Dates → format 'dd-mm-yyyy with prefix '
-    for col in ["DOB", "DOI", "Account Opening Date"]:
-        if col in df.columns:
-            def format_date(x):
-                if pd.isna(x) or str(x).strip() == "":
-                    return ""
-                dt = pd.to_datetime(x, dayfirst=True, errors="coerce")
+from datetime import datetime
+
+for col in ["DOB", "DOI", "Account Opening Date"]:
+    if col in df.columns:
+        def format_date(x):
+            # Handle blanks
+            if pd.isna(x) or str(x).strip() == "":
+                return ""
+            
+            # Handle Excel serial date numbers (e.g., 45231 → 15-11-2023)
+            if isinstance(x, (int, float)) and not pd.isna(x):
+                try:
+                    dt = pd.to_datetime("1899-12-30") + pd.to_timedelta(int(x), unit="D")
+                    return "'" + dt.strftime("%d-%m-%Y")
+                except Exception:
+                    pass
+
+            # Handle any text date format (dd-mm-yyyy, dd/mm/yyyy, yyyy-mm-dd, etc.)
+            try:
+                dt = pd.to_datetime(str(x), dayfirst=True, errors="coerce")
                 if pd.isna(dt):
-                    return str(x)   # keep original if invalid
+                    return str(x)  # keep as-is if invalid
                 return "'" + dt.strftime("%d-%m-%Y")
-            df[col] = df[col].apply(format_date)
+            except Exception:
+                return str(x)
+
+        df[col] = df[col].apply(format_date)
+
 
     # 4. Aadhaar No → add prefix `'`, skip NaN/blank, remove .0
     for col in ["Aadhar No", "Aadhaar No"]:
@@ -262,3 +280,4 @@ elif multiple_files:
     with st.expander("📝 View Cleaning Logs"):
         for log in all_logs:
             st.write("✔️", log)
+
