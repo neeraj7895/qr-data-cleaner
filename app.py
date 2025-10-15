@@ -3,6 +3,7 @@ import pandas as pd
 import re
 import io
 import os
+from datetime import datetime
 from openpyxl import load_workbook
 from openpyxl.worksheet.datavalidation import DataValidation
 
@@ -31,43 +32,40 @@ def clean_data(df, source_file=None):
         # --- NEW RULE: Clean 12-digit mobile numbers starting with '91' ---
         def clean_mobile(x):
             x = str(x).strip()
-            x = re.sub(r"\D", "", x)  # remove non-digit characters like +, spaces, dashes
+            x = re.sub(r"\D", "", x)  # remove non-digit characters
             if len(x) == 12 and x.startswith("91"):
-                x = x[2:]  # remove leading '91'
+                x = x[2:]
             return x
 
         df["Mobile No"] = df["Mobile No"].apply(clean_mobile)
         logs.append("Cleaned 12-digit mobile numbers by removing '91' prefix where applicable")
 
     # 3. Dates → format 'dd-mm-yyyy with prefix '
-from datetime import datetime
+    for col in ["DOB", "DOI", "Account Opening Date"]:
+        if col in df.columns:
+            def format_date(x):
+                # Handle blanks
+                if pd.isna(x) or str(x).strip() == "":
+                    return ""
 
-for col in ["DOB", "DOI", "Account Opening Date"]:
-    if col in df.columns:
-        def format_date(x):
-            # Handle blanks
-            if pd.isna(x) or str(x).strip() == "":
-                return ""
-            
-            # Handle Excel serial date numbers (e.g., 45231 → 15-11-2023)
-            if isinstance(x, (int, float)) and not pd.isna(x):
+                # Handle Excel serial date numbers (e.g., 45231 → 15-11-2023)
+                if isinstance(x, (int, float)) and not pd.isna(x):
+                    try:
+                        dt = pd.to_datetime("1899-12-30") + pd.to_timedelta(int(x), unit="D")
+                        return "'" + dt.strftime("%d-%m-%Y")
+                    except Exception:
+                        pass
+
+                # Handle text formats (supports /, -, ., YYYY-MM-DD)
                 try:
-                    dt = pd.to_datetime("1899-12-30") + pd.to_timedelta(int(x), unit="D")
+                    dt = pd.to_datetime(str(x), dayfirst=True, errors="coerce")
+                    if pd.isna(dt):
+                        return str(x)  # keep original if invalid
                     return "'" + dt.strftime("%d-%m-%Y")
                 except Exception:
-                    pass
+                    return str(x)
 
-            # Handle any text date format (dd-mm-yyyy, dd/mm/yyyy, yyyy-mm-dd, etc.)
-            try:
-                dt = pd.to_datetime(str(x), dayfirst=True, errors="coerce")
-                if pd.isna(dt):
-                    return str(x)  # keep as-is if invalid
-                return "'" + dt.strftime("%d-%m-%Y")
-            except Exception:
-                return str(x)
-
-        df[col] = df[col].apply(format_date)
-
+            df[col] = df[col].apply(format_date)
 
     # 4. Aadhaar No → add prefix `'`, skip NaN/blank, remove .0
     for col in ["Aadhar No", "Aadhaar No"]:
@@ -79,7 +77,7 @@ for col in ["DOB", "DOI", "Account Opening Date"]:
     # 5. Account No → add prefix `'`, skip NaN/blank, remove .0
     if "Account No" in df.columns:
         df["Account No"] = df["Account No"].astype(str).apply(
-            lambda x: "'" + x.lstrip("'").replace(".0", "") 
+            lambda x: "'" + x.lstrip("'").replace(".0", "")
             if x.strip() != "" and x.lower() != "nan" else ""
         )
 
@@ -243,7 +241,6 @@ if single_file:
     final_output = add_dropdowns(output, sheet_name="Cleaned")
     st.download_button("⬇️ Download Cleaned File", final_output.getvalue(), file_name="Cleaned_Single.xlsx")
 
-    # Logs in Expander
     with st.expander("📝 View Cleaning Logs"):
         for log in logs:
             st.write("✔️", log)
@@ -259,7 +256,6 @@ elif multiple_files:
 
     merged_df = pd.concat(all_dfs, ignore_index=True)
 
-    # Remove duplicate Mobile Nos in merged output
     if "Mobile No" in merged_df.columns:
         before = len(merged_df)
         merged_df = merged_df.drop_duplicates(subset=["Mobile No"], keep="first").copy()
@@ -268,7 +264,6 @@ elif multiple_files:
 
     st.success("✅ Multiple files processed and merged successfully!")
 
-    # Download with Dropdowns
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         merged_df.to_excel(writer, index=False, sheet_name="Cleaned_Merged")
@@ -276,8 +271,6 @@ elif multiple_files:
     final_output = add_dropdowns(output, sheet_name="Cleaned_Merged")
     st.download_button("⬇️ Download Merged Cleaned File", final_output.getvalue(), file_name="Cleaned_Merged.xlsx")
 
-    # Logs in Expander
     with st.expander("📝 View Cleaning Logs"):
         for log in all_logs:
             st.write("✔️", log)
-
