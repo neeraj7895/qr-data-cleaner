@@ -10,7 +10,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 # Page configuration
 st.set_page_config(
     page_title="QR Data Cleaner Pro",
-    page_icon="📊",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -324,7 +324,7 @@ Output:"""
 # Header
 st.markdown("""
 <div class="main-header">
-    <h1 class="main-title">📊 QR Data Cleaner Pro</h1>
+    <h1 class="main-title"> QR Data Cleaner Pro</h1>
     <p class="subtitle">Clean, merge & standardize your data</p>
 </div>
 """, unsafe_allow_html=True)
@@ -339,7 +339,7 @@ with st.sidebar:
                 margin-bottom: 2rem;
                 text-align: center;'>
         <h2 style='color: white; margin: 0; font-size: 1.5rem; font-weight: 700;'>
-            📊 QR Cleaner Pro
+             QR Cleaner Pro
         </h2>
     </div>
     """, unsafe_allow_html=True)
@@ -413,7 +413,7 @@ with tab1:
         )
     
     with col2:
-        st.markdown("### 📊 Processing Info")
+        st.markdown("###  Processing Info")
         if uploaded_files:
             st.metric("Files Uploaded", len(uploaded_files))
             total_size = sum([f.size for f in uploaded_files]) / 1024
@@ -657,5 +657,6 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
