@@ -5,7 +5,7 @@ import io
 from datetime import datetime
 from openpyxl import load_workbook
 from openpyxl.worksheet.datavalidation import DataValidation
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 
 # Page configuration
 st.set_page_config(
@@ -485,43 +485,53 @@ with tab2:
         if convert_button and input_text.strip():
             with st.spinner("🔄 Converting..."):
                 try:
-                    translator = Translator()
-                    
-                    # Translate to English
-                    translated = translator.translate(input_text, src='auto', dest='en')
-                    base_text = translated.text
+                    # Translate using deep-translator
+                    translator = GoogleTranslator(source='auto', target='en')
+                    base_text = translator.translate(input_text)
                     
                     # Generate 3 professional versions
                     # Option 1: Simple & Professional
-                    opt1 = base_text.capitalize()
+                    opt1 = base_text.strip()
+                    if not opt1[0].isupper():
+                        opt1 = opt1.capitalize()
                     if not opt1.endswith('.'):
                         opt1 += '.'
-                    if not opt1.lower().startswith('hi') and not opt1.lower().startswith('hello'):
+                    if not opt1.lower().startswith(('hi', 'hello')):
                         opt1 = "Hi, " + opt1[0].lower() + opt1[1:]
+                    if 'could you please' not in opt1.lower() and 'please' in opt1.lower():
+                        opt1 = opt1.replace('please', 'could you please')
                     st.session_state.option1 = opt1
                     
                     # Option 2: More Polite & Formal
-                    opt2 = base_text.capitalize()
+                    opt2 = base_text.strip()
+                    if not opt2[0].isupper():
+                        opt2 = opt2.capitalize()
                     if not opt2.endswith('.'):
                         opt2 += '.'
-                    if 'please' not in opt2.lower():
-                        opt2 = opt2.replace('.', '. Thank you.')
                     if not opt2.lower().startswith('hello'):
                         opt2 = "Hello, " + opt2[0].lower() + opt2[1:]
+                    if 'thank you' not in opt2.lower():
+                        opt2 = opt2.rstrip('.') + '. Thank you.'
+                    if 'request you' not in opt2.lower() and 'please' in opt2.lower():
+                        opt2 = opt2.replace('please', 'I request you to kindly')
                     st.session_state.option2 = opt2
                     
                     # Option 3: Crisp & Professional
-                    opt3 = base_text.capitalize()
+                    opt3 = base_text.strip()
+                    if not opt3[0].isupper():
+                        opt3 = opt3.capitalize()
                     if not opt3.endswith('.'):
                         opt3 += '.'
-                    # Keep it shorter
-                    opt3 = opt3.replace('I am ', "I'm ").replace('could you please', 'please')
+                    # Keep it shorter and direct
+                    opt3 = opt3.replace('I am ', "I'm ")
+                    opt3 = opt3.replace('could you please', 'please')
+                    opt3 = opt3.replace('I would like to', 'Need to')
                     st.session_state.option3 = opt3
                     
                     st.success("✅ Converted!")
                     
                 except Exception as e:
-                    st.error("❌ Translation failed. Please check your internet connection.")
+                    st.error("❌ Translation failed. Please try again.")
         
         # Display options
         if st.session_state.option1:
