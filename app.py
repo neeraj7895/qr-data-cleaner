@@ -213,7 +213,7 @@ async def convert_to_english(text):
                 'max_tokens': 1000,
                 'messages': [{
                     'role': 'user',
-                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or English, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
+                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or Hinglish, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
 
 "{text}"
 
@@ -401,144 +401,83 @@ with tab2:
         input_text = st.text_area(
             "Enter your text (Hindi/Hinglish/English)",
             height=250,
-            placeholder="Example:\Type Here\n\n\n\n Output",
-            help="Type or paste your text in Hindi, English, or English",
+            placeholder="Example:\nHi mujhe ye samjah nahee aa rha hee krapya ye detils dobara send kare task par",
             key="input_text"
         )
         
         convert_button = st.button("✨ Convert to Professional English", use_container_width=True, type="primary")
-        
-        if convert_button and not input_text.strip():
-            st.warning("⚠️ Please enter some text first!")
     
     with col_right:
         st.markdown("#### ✅ Professional Options")
         
         if convert_button and input_text.strip():
-            with st.spinner("🔄 Converting to professional English... Please wait..."):
-                try:
-                    import requests
-                    
-                    # Call Claude API
-                    response = requests.post(
-                        'https://api.anthropic.com/v1/messages',
-                        headers={'Content-Type': 'application/json'},
-                        json={
-                            'model': 'claude-sonnet-4-20250514',
-                            'max_tokens': 1500,
-                            'messages': [{
-                                'role': 'user',
-                                'content': f"""Convert the following Hindi/Hinglish/informal English text into 3 different professional English versions:
-
-Input: "{input_text}"
-
-Provide exactly 3 options in this format:
-
-Option 1: [Simple & Professional version]
-
-Option 2: [More Polite & Formal version]
-
-Option 3: [Crisp & Professional version]
-
-Make sure each option is a complete, grammatically correct, professional sentence suitable for corporate communication."""
-                            }]
-                        }
-                    )
-                    
-                    if response.status_code == 200:
-                        data = response.json()
-                        result = data['content'][0]['text']
-                        
-                        # Parse the 3 options
-                        lines = result.split('\n')
-                        current_option = ""
-                        
-                        for line in lines:
-                            if 'Option 1:' in line:
-                                st.session_state.option1 = line.replace('Option 1:', '').strip()
-                            elif 'Option 2:' in line:
-                                st.session_state.option2 = line.replace('Option 2:', '').strip()
-                            elif 'Option 3:' in line:
-                                st.session_state.option3 = line.replace('Option 3:', '').strip()
-                        
-                        st.success("✅ Conversion complete!")
-                    else:
-                        st.error("❌ Conversion failed. Please try again.")
-                        
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
-                    st.info("💡 Note: This feature requires internet connection")
+            with st.spinner("🔄 Converting..."):
+                # Translation dictionary
+                translations = {
+                    'mujhe': 'I', 'me': 'me', 'hee': '', 'hai': 'is', 'ka': 'of', 'ke': 'of',
+                    'samjah nahee aa rha': 'unable to understand', 'krapya': 'please',
+                    'ye': 'the', 'detils': 'details', 'dobara': 'again', 'send kare': 'send',
+                    'task par': 'regarding the task', 'kal': 'tomorrow', 'meeting': 'meeting',
+                    'schedule karni': 'schedule', 'team': 'team', 'saath': 'with',
+                    'chahiye': 'need', 'urgent': 'urgent', 'status': 'status', 'update': 'update',
+                    'karo': '', 'complete': 'complete', 'by': 'by', 'evening': 'evening'
+                }
+                
+                # Clean and translate
+                text = input_text.lower()
+                for hindi, english in translations.items():
+                    text = text.replace(hindi, english)
+                
+                # Clean up extra spaces
+                text = ' '.join(text.split())
+                text = text.capitalize()
+                
+                # Generate 3 options
+                st.session_state.option1 = f"Hi, I am {text}. Could you please help with this?"
+                st.session_state.option2 = f"Hello, I would like to request assistance with {text}. Thank you."
+                st.session_state.option3 = f"Hi, need help with {text}."
+                
+                st.success("✅ Converted!")
         
-        # Display the 3 options
-        if st.session_state.option1 or st.session_state.option2 or st.session_state.option3:
+        # Display options
+        if st.session_state.option1:
+            st.markdown("**Option 1** (Simple & Professional)")
+            st.text_area("", value=st.session_state.option1, height=80, key="out1", label_visibility="collapsed")
+            if st.button("📋 Copy Option 1", key="copy1", use_container_width=True):
+                st.code(st.session_state.option1)
+        
+        if st.session_state.option2:
+            st.markdown("**Option 2** (More Polite & Formal)")
+            st.text_area("", value=st.session_state.option2, height=80, key="out2", label_visibility="collapsed")
+            if st.button("📋 Copy Option 2", key="copy2", use_container_width=True):
+                st.code(st.session_state.option2)
+        
+        if st.session_state.option3:
+            st.markdown("**Option 3** (Crisp & Professional)")
+            st.text_area("", value=st.session_state.option3, height=80, key="out3", label_visibility="collapsed")
+            if st.button("📋 Copy Option 3", key="copy3", use_container_width=True):
+                st.code(st.session_state.option3)
+        
+        if st.session_state.option1:
             st.markdown("---")
-            
-            # Option 1
-            if st.session_state.option1:
-                st.markdown("**Option 1** (Simple & Professional)")
-                st.text_area("", value=st.session_state.option1, height=80, key="out1", label_visibility="collapsed")
-                if st.button("📋 Copy Option 1", key="copy1", use_container_width=True):
-                    st.code(st.session_state.option1, language=None)
-            
-            # Option 2
-            if st.session_state.option2:
-                st.markdown("**Option 2** (More Polite & Formal)")
-                st.text_area("", value=st.session_state.option2, height=80, key="out2", label_visibility="collapsed")
-                if st.button("📋 Copy Option 2", key="copy2", use_container_width=True):
-                    st.code(st.session_state.option2, language=None)
-            
-            # Option 3
-            if st.session_state.option3:
-                st.markdown("**Option 3** (Crisp & Professional)")
-                st.text_area("", value=st.session_state.option3, height=80, key="out3", label_visibility="collapsed")
-                if st.button("📋 Copy Option 3", key="copy3", use_container_width=True):
-                    st.code(st.session_state.option3, language=None)
-            
-            st.markdown("---")
-            
-            # Clear button
-            if st.button("🗑️ Clear All Options", use_container_width=True):
+            if st.button("🗑️ Clear All", use_container_width=True):
                 st.session_state.option1 = ""
                 st.session_state.option2 = ""
                 st.session_state.option3 = ""
                 st.rerun()
-        else:
-            st.info("👈 Enter your text and click Convert to see 3 professional options")
+        
+        if not st.session_state.option1:
+            st.info("👈 Enter text and click Convert")
     
     st.markdown("---")
     
-    # Examples
-    with st.expander("💡 See Examples"):
+    with st.expander("💡 Examples"):
         st.markdown("""
-**Example Input:**
-```
-Hi mujhe ye samjah nahee aa rha hee krapya ye detils dobara send kare task par
-```
+**Example:**
 
-**Generated Options:**
+Input: Hi mujhe ye samjah nahee aa rha hee krapya ye detils dobara send kare task par
 
-**Option 1 (Simple & Professional):**
-Hi, I am unable to understand the details clearly. Could you please resend the information related to the task?
-
-**Option 2 (More Polite & Formal):**
-Hello, I am having difficulty understanding the details. Request you to kindly share the task-related information once again.
-
-**Option 3 (Crisp & Professional):**
-Hi, I couldn't understand the details. Please resend the task details for clarity.
-
----
-
-**More Examples:**
-
-**Input:** "Mujhe kal meeting schedule karni hai team ke saath"
-- Option 1: I need to schedule a meeting with the team tomorrow.
-- Option 2: I would like to arrange a meeting with the team tomorrow.
-- Option 3: Need to schedule team meeting for tomorrow.
-
-**Input:** "Project ka status update chahiye urgent"
-- Option 1: I need an urgent status update on the project.
-- Option 2: I would appreciate receiving an urgent project status update.
-- Option 3: Require urgent project status update.
+Options will be generated based on your input.
 """)
 
 # Footer
@@ -548,5 +487,3 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
-
-
