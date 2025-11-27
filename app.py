@@ -213,7 +213,7 @@ async def convert_to_english(text):
                 'max_tokens': 1000,
                 'messages': [{
                     'role': 'user',
-                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or Hinglish, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
+                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or English, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
 
 "{text}"
 
@@ -401,7 +401,7 @@ with tab2:
         input_text = st.text_area(
             "Enter your text (Hindi/Hinglish/English)",
             height=250,
-            placeholder="Example:\nHi mujhe ye samjah nahee aa rha hee krapya ye detils dobara send kare task par\n\nया\n\nPlease task complete karo by evening",
+            placeholder="Example:\Type Here\n\nया\n\nGet what you want",
             help="Type or paste your text in Hindi, Hinglish, or English",
             key="input_text"
         )
@@ -548,3 +548,4 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
+
