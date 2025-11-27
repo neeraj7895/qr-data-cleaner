@@ -224,7 +224,7 @@ def load_excel(file):
 
 # Function to convert Hindi/Hinglish to English
 async def convert_to_english(text):
-    """Convert Hindi/Hinglish to professional English using Claude API"""
+    """Convert Hindi/English to professional English using Claude API"""
     try:
         response = await fetch('https://api.anthropic.com/v1/messages', {
             'method': 'POST',
@@ -455,7 +455,7 @@ with tab1:
 
 # ============= ENGLISH CREATOR TAB =============
 with tab2:
-    st.markdown("### 🌐 Hindi/Hinglish to Professional English")
+    st.markdown("### 🌐 Hindi/English to Professional English")
     st.markdown("Perfect for emails, tasks, and formal communication")
     
     # Initialize session state
@@ -471,9 +471,9 @@ with tab2:
     with col_left:
         st.markdown("#### 📝 Input Text")
         input_text = st.text_area(
-            "Enter your text (Hindi/Hinglish/English)",
+            "Enter your text (Hindi/English/English)",
             height=250,
-            placeholder="Example:\nHi mujhe ye samjah nahee aa rha hee krapya ye detils dobara send kare task par",
+            placeholder="Example:\nHello There",
             key="input_text"
         )
         
@@ -574,7 +574,7 @@ with tab2:
         st.markdown("""
 **Example:**
 
-Input: Hi mujhe ye samjah nahee aa rha hee krapya ye detils dobara send kare task par
+Input: Hello There
 
 Output: Professional English versions will be generated automatically.
 """)
@@ -586,3 +586,4 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
+
