@@ -187,6 +187,7 @@ def clean_data(df, source_file=None):
                     return str(x)
             
             df[col] = df[col].apply(format_date)
+            logs.append(f"Formatted date column: {col}")
     
     # 4. Aadhaar formatting
     for col in ["Aadhar No", "Aadhaar No"]:
@@ -195,6 +196,7 @@ def clean_data(df, source_file=None):
                 lambda x: "'" + x.lstrip("'").replace(".0", "")
                 if x.strip() != "" and x.lower() != "nan" else ""
             )
+            logs.append(f"Formatted Aadhaar column: {col}")
     
     # 5. Account No formatting
     if "Account No" in df.columns:
@@ -202,6 +204,33 @@ def clean_data(df, source_file=None):
             lambda x: "'" + x.lstrip("'").replace(".0", "")
             if x.strip() != "" and x.lower() != "nan" else ""
         )
+        logs.append("Formatted Account No column")
+    
+    # 6. Branch Name → Replace all values with "HO Branch"
+    if "Branch Name" in df.columns:
+        df["Branch Name"] = "HO Branch"
+        logs.append("Replaced all values in 'Branch Name' with 'HO Branch'")
+    
+    # 7. Add Source File column if multiple uploads
+    if source_file:
+        df["Source_File"] = source_file
+        logs.append(f"Added Source_File column: {source_file}")
+    
+    # 8. Clear unwanted columns (keep header, clear data)
+    clear_cols = [
+        "Turnover Type", "Acceptance Type", "Ownership Type", "MCC", 
+        "Email ID", "Source_File", "Bank Cust ID", "State Code (GST)", 
+        "Latitude", "Longitude", "District"
+    ]
+    
+    for col in clear_cols:
+        # Find matching columns (case-insensitive, space-insensitive)
+        col_normalized = col.lower().replace(" ", "").replace("_", "")
+        for df_col in df.columns:
+            df_col_normalized = df_col.lower().replace(" ", "").replace("_", "")
+            if df_col_normalized == col_normalized:
+                df[df_col] = ""
+                logs.append(f"Cleared data from column: {df_col}")
     
     return df, logs
 
@@ -224,7 +253,7 @@ def load_excel(file):
 
 # Function to convert Hindi/Hinglish to English
 async def convert_to_english(text):
-    """Convert Hindi/English to professional English using Claude API"""
+    """Convert Hindi/Hinglish to professional English using Claude API"""
     try:
         response = await fetch('https://api.anthropic.com/v1/messages', {
             'method': 'POST',
@@ -254,7 +283,7 @@ Output:"""
 # Header
 st.markdown("""
 <div class="main-header">
-    <h1 class="main-title">QR Data Cleaner Pro</h1>
+    <h1 class="main-title"> QR Data Cleaner Pro</h1>
     <p class="subtitle">Clean, merge & standardize your data</p>
 </div>
 """, unsafe_allow_html=True)
@@ -269,7 +298,7 @@ with st.sidebar:
                 margin-bottom: 2rem;
                 text-align: center;'>
         <h2 style='color: white; margin: 0; font-size: 1.5rem; font-weight: 700;'>
-            QR Cleaner Pro
+             QR Cleaner Pro
         </h2>
     </div>
     """, unsafe_allow_html=True)
@@ -343,7 +372,7 @@ with tab1:
         )
     
     with col2:
-        st.markdown("### Processing Info")
+        st.markdown("###  Processing Info")
         if uploaded_files:
             st.metric("Files Uploaded", len(uploaded_files))
             total_size = sum([f.size for f in uploaded_files]) / 1024
@@ -473,7 +502,7 @@ with tab2:
         input_text = st.text_area(
             "Enter your text (Hindi/English/English)",
             height=250,
-            placeholder="Example:\nHello There",
+            placeholder="Example:\nHi",
             key="input_text"
         )
         
@@ -574,7 +603,7 @@ with tab2:
         st.markdown("""
 **Example:**
 
-Input: Hello There
+Input: Hi
 
 Output: Professional English versions will be generated automatically.
 """)
@@ -586,5 +615,3 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
-
-
