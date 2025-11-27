@@ -654,9 +654,10 @@ Output: Professional English versions will be generated automatically.
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #64748b; padding: 2rem;'>
-    <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
+    <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
