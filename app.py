@@ -5,7 +5,6 @@ import io
 from datetime import datetime
 from openpyxl import load_workbook
 from openpyxl.worksheet.datavalidation import DataValidation
-import anthropic
 
 # Page configuration
 st.set_page_config(
@@ -99,6 +98,93 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ============= YOUR EXISTING FUNCTIONS =============
+# (Keep all your existing functions here: clean_data, add_dropdowns, load_excel, etc.)
+
+def clean_data(df, source_file=None):
+    """Your existing clean_data function - paste it here"""
+    logs = []
+    
+    # 1. Remove duplicates by Mobile No
+    if "Mobile No" in df.columns:
+        before = len(df)
+        df = df.drop_duplicates(subset=["Mobile No"], keep="first").copy()
+        after = len(df)
+        if before > after:
+            logs.append(f"Removed {before - after} duplicate mobile numbers")
+    
+    # 2. Clean 12-digit mobile numbers starting with '91'
+    if "Mobile No" in df.columns:
+        def clean_mobile(x):
+            x = str(x).strip()
+            x = re.sub(r"\D", "", x)
+            if len(x) == 12 and x.startswith("91"):
+                x = x[2:]
+            return x
+        
+        df["Mobile No"] = df["Mobile No"].apply(clean_mobile)
+        logs.append("Cleaned 12-digit mobile numbers by removing '91' prefix where applicable")
+    
+    # 3. Dates formatting
+    for col in ["DOB", "DOI", "Account Opening Date"]:
+        if col in df.columns:
+            def format_date(x):
+                if pd.isna(x) or str(x).strip() == "":
+                    return ""
+                
+                if isinstance(x, (int, float)) and not pd.isna(x):
+                    try:
+                        dt = pd.to_datetime("1899-12-30") + pd.to_timedelta(int(x), unit="D")
+                        return "'" + dt.strftime("%d-%m-%Y")
+                    except Exception:
+                        pass
+                
+                try:
+                    dt = pd.to_datetime(str(x), dayfirst=True, errors="coerce")
+                    if pd.isna(dt):
+                        return str(x)
+                    return "'" + dt.strftime("%d-%m-%Y")
+                except Exception:
+                    return str(x)
+            
+            df[col] = df[col].apply(format_date)
+    
+    # 4. Aadhaar formatting
+    for col in ["Aadhar No", "Aadhaar No"]:
+        if col in df.columns:
+            df[col] = df[col].astype(str).apply(
+                lambda x: "'" + x.lstrip("'").replace(".0", "")
+                if x.strip() != "" and x.lower() != "nan" else ""
+            )
+    
+    # 5. Account No formatting
+    if "Account No" in df.columns:
+        df["Account No"] = df["Account No"].astype(str).apply(
+            lambda x: "'" + x.lstrip("'").replace(".0", "")
+            if x.strip() != "" and x.lower() != "nan" else ""
+        )
+    
+    return df, logs
+
+def add_dropdowns(buffer, sheet_name="Cleaned"):
+    """Your existing add_dropdowns function"""
+    buffer.seek(0)
+    wb = load_workbook(buffer)
+    ws = wb[sheet_name]
+    
+    # Add your dropdown logic here
+    
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
+
+def load_excel(file):
+    """Load Excel file"""
+    return pd.read_excel(file)
+
+# ============= STREAMLIT UI =============
+
 # Header
 st.markdown("""
 <div class="main-header">
@@ -109,7 +195,6 @@ st.markdown("""
 
 # Sidebar
 with st.sidebar:
-    st.image("https://via.placeholder.com/150x50/667eea/ffffff?text=QR+Cleaner", use_column_width=True)
     st.markdown("### ⚙️ Settings")
     st.markdown("---")
     st.info("**System Status:** 🟢 Active")
@@ -170,23 +255,72 @@ with tab1:
         with col_btn2:
             if st.button("🚀 Clean & Process Files", use_container_width=True):
                 with st.spinner("Processing files..."):
-                    # YOUR EXISTING CLEANING LOGIC HERE
-                    # (Keep your clean_data, add_dropdowns functions)
-                    
-                    # Example placeholder
-                    import time
-                    time.sleep(2)
-                    
-                    st.success("✅ Files processed successfully!")
-                    st.balloons()
-                    
-                    # Download button would go here
-                    st.download_button(
-                        "⬇️ Download Cleaned File",
-                        data=b"",  # Your processed file bytes
-                        file_name="Cleaned_Data.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
+                    try:
+                        all_logs = []
+                        
+                        if len(uploaded_files) == 1:
+                            # Single file processing
+                            df = load_excel(uploaded_files[0])
+                            cleaned_df, logs = clean_data(df, uploaded_files[0].name)
+                            all_logs.extend(logs)
+                            
+                            # Create Excel output
+                            output = io.BytesIO()
+                            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                                cleaned_df.to_excel(writer, index=False, sheet_name="Cleaned")
+                            
+                            final_output = add_dropdowns(output, sheet_name="Cleaned")
+                            
+                            st.success("✅ File processed successfully!")
+                            st.balloons()
+                            
+                            st.download_button(
+                                "⬇️ Download Cleaned File",
+                                data=final_output.getvalue(),
+                                file_name="Cleaned_Single.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+                        else:
+                            # Multiple files processing
+                            all_dfs = []
+                            for file in uploaded_files:
+                                df = load_excel(file)
+                                cleaned_df, logs = clean_data(df, file.name)
+                                all_dfs.append(cleaned_df)
+                                all_logs.extend(logs)
+                            
+                            merged_df = pd.concat(all_dfs, ignore_index=True)
+                            
+                            # Remove duplicates in merged
+                            if "Mobile No" in merged_df.columns:
+                                before = len(merged_df)
+                                merged_df = merged_df.drop_duplicates(subset=["Mobile No"], keep="first").copy()
+                                after = len(merged_df)
+                                all_logs.append(f"Removed {before - after} duplicates from merged data")
+                            
+                            output = io.BytesIO()
+                            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                                merged_df.to_excel(writer, index=False, sheet_name="Cleaned_Merged")
+                            
+                            final_output = add_dropdowns(output, sheet_name="Cleaned_Merged")
+                            
+                            st.success("✅ Multiple files processed and merged successfully!")
+                            st.balloons()
+                            
+                            st.download_button(
+                                "⬇️ Download Merged Cleaned File",
+                                data=final_output.getvalue(),
+                                file_name="Cleaned_Merged.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+                        
+                        # Show logs
+                        with st.expander("📝 View Cleaning Logs"):
+                            for log in all_logs:
+                                st.write("✔️", log)
+                                
+                    except Exception as e:
+                        st.error(f"❌ Error processing files: {str(e)}")
         
         # Processing steps info
         with st.expander("🔍 Cleaning Operations", expanded=False):
@@ -224,45 +358,24 @@ with tab2:
         st.markdown("#### ✅ Professional Output")
         
         if convert_button and input_text.strip():
-            with st.spinner("Converting to professional English..."):
-                try:
-                    # Initialize Anthropic client (no API key needed in claude.ai)
-                    client = anthropic.Anthropic()
-                    
-                    # Call Claude API
-                    message = client.messages.create(
-                        model="claude-sonnet-4-20250514",
-                        max_tokens=1000,
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": f"""Convert the following text to professional corporate English. If it's in Hindi/Hinglish, translate it. If it's already in English, improve it for professional communication:
+            st.info("🔧 **API Integration Required**\n\nTo enable this feature, you need to add the translation API. For now, here's a demo output:")
+            
+            # Demo output
+            demo_output = """I would like to schedule a meeting with the team tomorrow.
 
-"{input_text}"
+Please let me know your availability so we can coordinate accordingly.
 
-Provide only the professional English version without any explanations."""
-                            }
-                        ]
-                    )
-                    
-                    # Extract response
-                    output_text = message.content[0].text
-                    
-                    # Display output
-                    st.text_area(
-                        "Professional English Result",
-                        value=output_text,
-                        height=250,
-                        help="Copy this text for your email or communication"
-                    )
-                    
-                    # Copy button
-                    st.code(output_text, language=None)
-                    st.success("✅ Conversion complete! You can copy the text above.")
-                    
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
-                    st.info("Make sure the Anthropic API is accessible.")
+Thank you."""
+            
+            st.text_area(
+                "Professional English Result (Demo)",
+                value=demo_output,
+                height=250,
+                help="This is a demo output. Integrate with translation API for real conversions."
+            )
+            
+            st.code(demo_output, language=None)
+            st.warning("⚠️ To enable real-time translation, integrate with Claude API or Google Translate API")
         
         elif convert_button:
             st.warning("⚠️ Please enter some text first!")
@@ -283,6 +396,11 @@ Provide only the professional English version without any explanations."""
         **Example:**
         - Input: "Mujhe kal meeting rakhni hai"
         - Output: "I need to schedule a meeting tomorrow"
+        
+        **Note:** Currently showing demo mode. To enable real translation:
+        1. Add translation API (Claude/Google Translate)
+        2. Update the conversion logic in the code
+        3. Deploy with API credentials
         """)
 
 # Footer
@@ -291,4 +409,4 @@ st.markdown("""
 <div style='text-align: center; color: white; padding: 2rem;'>
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team | Powered by AI</p>
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=T
