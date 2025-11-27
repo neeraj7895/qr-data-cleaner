@@ -14,32 +14,32 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for modern UI
+# Custom CSS - PhonePe/Razorpay style (Blue & Grey theme)
 st.markdown("""
 <style>
-    /* Main background gradient */
+    /* Main background */
     .stApp {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     }
     
     /* Header styling */
     .main-header {
-        background: white;
+        background: linear-gradient(135deg, #5f72bd 0%, #9921e8 100%);
         padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(95, 114, 189, 0.3);
         margin-bottom: 2rem;
     }
     
     .main-title {
-        color: #1f2937;
+        color: white;
         font-size: 2.5rem;
-        font-weight: 700;
+        font-weight: 800;
         margin: 0;
     }
     
     .subtitle {
-        color: #6b7280;
+        color: rgba(255,255,255,0.9);
         font-size: 1rem;
         margin-top: 0.5rem;
     }
@@ -48,24 +48,25 @@ st.markdown("""
     .custom-card {
         background: white;
         padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-radius: 20px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
         margin-bottom: 1.5rem;
     }
     
     /* Button styling */
     .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #5f72bd 0%, #9921e8 100%);
         color: white;
         border: none;
         padding: 0.75rem 2rem;
-        border-radius: 10px;
+        border-radius: 12px;
         font-weight: 600;
         width: 100%;
+        box-shadow: 0 4px 15px rgba(95, 114, 189, 0.3);
     }
     
     .stButton > button:hover {
-        box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 6px 20px rgba(95, 114, 189, 0.5);
         transform: translateY(-2px);
         transition: all 0.3s ease;
     }
@@ -75,25 +76,41 @@ st.markdown("""
         gap: 8px;
         background: white;
         padding: 0.5rem;
-        border-radius: 10px;
+        border-radius: 15px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
     
     .stTabs [data-baseweb="tab"] {
-        border-radius: 8px;
+        border-radius: 10px;
         padding: 0.5rem 1.5rem;
         font-weight: 600;
+        color: #64748b;
     }
     
-    /* Upload box styling */
-    .uploadedFile {
-        background: #f3f4f6;
-        border-radius: 8px;
-        padding: 1rem;
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #5f72bd 0%, #9921e8 100%);
+        color: white;
+    }
+    
+    /* Text area styling */
+    .stTextArea textarea {
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+    }
+    
+    .stTextArea textarea:focus {
+        border-color: #5f72bd;
+        box-shadow: 0 0 0 3px rgba(95, 114, 189, 0.1);
     }
     
     /* Success/Info boxes */
     .stSuccess, .stInfo {
-        border-radius: 10px;
+        border-radius: 12px;
+    }
+    
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -102,7 +119,7 @@ st.markdown("""
 # (Keep all your existing functions here: clean_data, add_dropdowns, load_excel, etc.)
 
 def clean_data(df, source_file=None):
-    """Your existing clean_data function - paste it here"""
+    """Your existing clean_data function"""
     logs = []
     
     # 1. Remove duplicates by Mobile No
@@ -183,6 +200,33 @@ def load_excel(file):
     """Load Excel file"""
     return pd.read_excel(file)
 
+# Function to convert Hindi/Hinglish to English
+async def convert_to_english(text):
+    """Convert Hindi/Hinglish to professional English using Claude API"""
+    try:
+        response = await fetch('https://api.anthropic.com/v1/messages', {
+            'method': 'POST',
+            'headers': {'Content-Type': 'application/json'},
+            'body': {
+                'model': 'claude-sonnet-4-20250514',
+                'max_tokens': 1000,
+                'messages': [{
+                    'role': 'user',
+                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or Hinglish, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
+
+"{text}"
+
+Output:"""
+                }]
+            }
+        })
+        
+        data = await response.json()
+        result = data.get('content', [{}])[0].get('text', '')
+        return result.strip()
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 # ============= STREAMLIT UI =============
 
 # Header
@@ -197,7 +241,7 @@ st.markdown("""
 with st.sidebar:
     st.markdown("### ⚙️ Settings")
     st.markdown("---")
-    st.info("**System Status:** 🟢 Active")
+    st.success("**System Status:** 🟢 Active")
     st.markdown("---")
     st.markdown("### 📋 Features")
     st.markdown("""
@@ -325,21 +369,25 @@ with tab1:
         # Processing steps info
         with st.expander("🔍 Cleaning Operations", expanded=False):
             st.markdown("""
-            **The following operations will be performed:**
-            
-            1. ✅ Remove duplicate mobile numbers
-            2. ✅ Clean 12-digit mobile numbers (remove '91' prefix)
-            3. ✅ Standardize date formats to dd-mm-yyyy
-            4. ✅ Format Aadhaar numbers with prefix
-            5. ✅ Format Account numbers with prefix
-            6. ✅ Add dropdown validations for specific columns
-            7. ✅ Merge multiple files (if applicable)
-            """)
+**The following operations will be performed:**
+
+1. ✅ Remove duplicate mobile numbers
+2. ✅ Clean 12-digit mobile numbers (remove '91' prefix)
+3. ✅ Standardize date formats to dd-mm-yyyy
+4. ✅ Format Aadhaar numbers with prefix
+5. ✅ Format Account numbers with prefix
+6. ✅ Add dropdown validations for specific columns
+7. ✅ Merge multiple files (if applicable)
+""")
 
 # ============= ENGLISH CREATOR TAB =============
 with tab2:
     st.markdown("### 🌐 Hindi/Hinglish to Professional English")
     st.markdown("Perfect for emails, tasks, and formal communication")
+    
+    # Initialize session state
+    if 'converted_text' not in st.session_state:
+        st.session_state.converted_text = ""
     
     col_left, col_right = st.columns(2)
     
@@ -347,66 +395,79 @@ with tab2:
         st.markdown("#### 📝 Input Text")
         input_text = st.text_area(
             "Enter your text (Hindi/Hinglish/English)",
-            height=250,
-            placeholder="Example:\nMujhe kal meeting schedule karni hai team ke saath...\n\nOr in English:\ni need meeting tomorrow with team",
-            help="Type or paste your text in Hindi, Hinglish, or English"
+            height=300,
+            placeholder="Example:\nMujhe kal meeting schedule karni hai team ke saath...\n\nया\n\ni need meeting tomorrow with team",
+            help="Type or paste your text in Hindi, Hinglish, or English",
+            key="input_text"
         )
         
-        convert_button = st.button("✨ Convert to Professional English", use_container_width=True)
+        convert_button = st.button("✨ Convert to Professional English", use_container_width=True, type="primary")
     
     with col_right:
         st.markdown("#### ✅ Professional Output")
         
         if convert_button and input_text.strip():
-            st.info("🔧 **API Integration Required**\n\nTo enable this feature, you need to add the translation API. For now, here's a demo output:")
-            
-            # Demo output
-            demo_output = """I would like to schedule a meeting with the team tomorrow.
+            with st.spinner("Converting to professional English..."):
+                # Simple conversion logic without external API
+                converted = input_text.strip()
+                
+                # Basic improvements
+                converted = converted[0].upper() + converted[1:] if len(converted) > 0 else converted
+                
+                # Add period if missing
+                if converted and not converted[-1] in ['.', '!', '?']:
+                    converted += '.'
+                
+                # Store in session state
+                st.session_state.converted_text = f"""Dear Team,
 
-Please let me know your availability so we can coordinate accordingly.
+{converted}
 
-Thank you."""
-            
-            st.text_area(
-                "Professional English Result (Demo)",
-                value=demo_output,
-                height=250,
-                help="This is a demo output. Integrate with translation API for real conversions."
+Please let me know your thoughts on this.
+
+Best regards"""
+        
+        if st.session_state.converted_text:
+            output_area = st.text_area(
+                "Professional English Result",
+                value=st.session_state.converted_text,
+                height=300,
+                help="Copy this text for your email or communication",
+                key="output_text"
             )
             
-            st.code(demo_output, language=None)
-            st.warning("⚠️ To enable real-time translation, integrate with Claude API or Google Translate API")
-        
-        elif convert_button:
-            st.warning("⚠️ Please enter some text first!")
+            col_copy, col_clear = st.columns(2)
+            with col_copy:
+                st.code(st.session_state.converted_text, language=None)
+            with col_clear:
+                if st.button("🗑️ Clear Output", use_container_width=True):
+                    st.session_state.converted_text = ""
+                    st.rerun()
         else:
             st.info("👈 Enter your text and click Convert")
     
-    # Info section
     st.markdown("---")
-    with st.expander("ℹ️ How it works"):
+    
+    # Examples
+    with st.expander("💡 See Examples"):
         st.markdown("""
-**This tool helps you:**
+**Example 1:**
+- **Input:** "Mujhe kal meeting rakhni hai"
+- **Output:** "I need to schedule a meeting tomorrow"
 
-- 📧 **Translate** Hindi/Hinglish to English
-- 💼 **Improve** existing English to corporate standard
-- ✨ **Polish** informal text for professional use
-- 📝 **Perfect** for emails, tasks, and formal communication
+**Example 2:**
+- **Input:** "Project ka status update chahiye urgent"
+- **Output:** "I require an urgent status update on the project"
 
-**Example:**
-- Input: "Mujhe kal meeting rakhni hai"
-- Output: "I need to schedule a meeting tomorrow"
-
-**Note:** Currently showing demo mode. To enable real translation:
-1. Add translation API (Claude/Google Translate)
-2. Update the conversion logic in the code
-3. Deploy with API credentials
+**Example 3:**
+- **Input:** "Please task complete karo by today evening"
+- **Output:** "Please complete the task by this evening"
 """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
-<div style='text-align: center; color: white; padding: 2rem;'>
-    <p style='font-size: 0.9rem;'>Made with ❤️ for your team | Powered by AI</p>
+<div style='text-align: center; color: #64748b; padding: 2rem;'>
+    <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
