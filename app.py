@@ -237,6 +237,13 @@ def clean_data(df, source_file=None):
     if source_file:
         df["Source_File"] = source_file
         logs.append(f"Added Source_File column: {source_file}")
+
+    # 8. Entity vs Personal Names
+    if "Entity Name" in df.columns:
+        entity_mask = df["Entity Name"].notna() & (df["Entity Name"].str.strip() != "")
+        for col in ["First Name", "Middle Name", "Last Name"]:
+            if col in df.columns:
+                df.loc[entity_mask, col] = ""   # clear personal names if entity present
     
     # 8. Clear unwanted columns (keep header, clear data)
     clear_cols = [
@@ -639,3 +646,4 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
+
