@@ -244,6 +244,17 @@ def clean_data(df, source_file=None):
         for col in ["First Name", "Middle Name", "Last Name"]:
             if col in df.columns:
                 df.loc[entity_mask, col] = ""   # clear personal names if entity present
+
+    # If Address Line 2 is blank/NaN → copy from Address Line 1
+    if "Address Line 1" in df.columns and "Address Line 2" in df.columns:
+        df["Address Line 2"] = df.apply(
+            lambda r: r["Address Line 1"]
+            if (pd.isna(r["Address Line 2"]) or str(r["Address Line 2"]).strip() == "")
+               and str(r["Address Line 1"]).strip() != ""
+            else r["Address Line 2"],
+            axis=1
+        )
+
     
     # 8. Clear unwanted columns (keep header, clear data)
     clear_cols = [
@@ -646,4 +657,5 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
