@@ -2,15 +2,15 @@ import streamlit as st
 import pandas as pd
 import re
 import io
-import requests
 from datetime import datetime
 from openpyxl import load_workbook
 from openpyxl.worksheet.datavalidation import DataValidation
+from googletrans import Translator
 
 # Page configuration
 st.set_page_config(
     page_title="QR Data Cleaner Pro",
-    page_icon="",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -20,38 +20,39 @@ st.markdown("""
 <style>
     /* Main background */
     .stApp {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: #f8f9fa;
+    }
+    
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] {
+        background: #1f2937;
+        padding-top: 2rem;
+    }
+    
+    section[data-testid="stSidebar"] > div {
+        padding: 1.5rem;
     }
     
     /* Header styling */
     .main-header {
-        background: linear-gradient(135deg, #5f72bd 0%, #9921e8 100%);
+        background: white;
         padding: 2rem;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(95, 114, 189, 0.3);
+        border-radius: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         margin-bottom: 2rem;
     }
     
     .main-title {
-        color: white;
-        font-size: 2.5rem;
-        font-weight: 800;
+        color: #1f2937;
+        font-size: 2rem;
+        font-weight: 700;
         margin: 0;
     }
     
     .subtitle {
-        color: rgba(255,255,255,0.9);
-        font-size: 1rem;
+        color: #6b7280;
+        font-size: 0.95rem;
         margin-top: 0.5rem;
-    }
-    
-    /* Card styling */
-    .custom-card {
-        background: white;
-        padding: 2rem;
-        border-radius: 20px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-        margin-bottom: 1.5rem;
     }
     
     /* Button styling */
@@ -60,14 +61,14 @@ st.markdown("""
         color: white;
         border: none;
         padding: 0.75rem 2rem;
-        border-radius: 12px;
+        border-radius: 10px;
         font-weight: 600;
         width: 100%;
-        box-shadow: 0 4px 15px rgba(95, 114, 189, 0.3);
+        box-shadow: 0 4px 12px rgba(95, 114, 189, 0.3);
     }
     
     .stButton > button:hover {
-        box-shadow: 0 6px 20px rgba(95, 114, 189, 0.5);
+        box-shadow: 0 6px 16px rgba(95, 114, 189, 0.4);
         transform: translateY(-2px);
         transition: all 0.3s ease;
     }
@@ -77,15 +78,16 @@ st.markdown("""
         gap: 8px;
         background: white;
         padding: 0.5rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     
     .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 0.5rem 1.5rem;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
         font-weight: 600;
         color: #64748b;
+        background: transparent;
     }
     
     .stTabs [aria-selected="true"] {
@@ -93,10 +95,19 @@ st.markdown("""
         color: white;
     }
     
+    /* Card styling */
+    div[data-testid="stExpander"] {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    
     /* Text area styling */
     .stTextArea textarea {
-        border-radius: 12px;
-        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        border: 2px solid #e5e7eb;
+        background: white;
     }
     
     .stTextArea textarea:focus {
@@ -104,14 +115,24 @@ st.markdown("""
         box-shadow: 0 0 0 3px rgba(95, 114, 189, 0.1);
     }
     
-    /* Success/Info boxes */
-    .stSuccess, .stInfo {
+    /* File uploader */
+    section[data-testid="stFileUploader"] {
+        background: white;
         border-radius: 12px;
+        padding: 1.5rem;
+        border: 2px dashed #e5e7eb;
     }
     
-    /* Sidebar */
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+    /* Metrics */
+    div[data-testid="stMetricValue"] {
+        color: #1f2937;
+        font-weight: 700;
+    }
+    
+    /* Info/Success boxes */
+    .stAlert {
+        border-radius: 10px;
+        border: none;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -213,7 +234,7 @@ async def convert_to_english(text):
                 'max_tokens': 1000,
                 'messages': [{
                     'role': 'user',
-                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or English, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
+                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or Hinglish, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
 
 "{text}"
 
@@ -233,26 +254,77 @@ Output:"""
 # Header
 st.markdown("""
 <div class="main-header">
-    <h1 class="main-title">QR Data Cleaner Pro</h1>
-    <p class="subtitle">Clean, merge & standardize your data efficiently</p>
+    <h1 class="main-title">📊 QR Data Cleaner Pro</h1>
+    <p class="subtitle">Clean, merge & standardize your data</p>
 </div>
 """, unsafe_allow_html=True)
 
 # Sidebar
 with st.sidebar:
-    st.markdown("### ⚙️ Settings")
-    st.markdown("---")
-    st.success("**System Status:** 🟢 Active")
-    st.markdown("---")
-    st.markdown("### 📋 Features")
+    # Logo/Title Section
     st.markdown("""
-    - ✅ Remove duplicates
-    - ✅ Clean mobile numbers
-    - ✅ Standardize dates
-    - ✅ Format Aadhaar/Account
-    - ✅ Add dropdowns
-    - ✅ Hindi to English
-    """)
+    <div style='background: linear-gradient(135deg, #5f72bd 0%, #9921e8 100%); 
+                padding: 1.5rem; 
+                border-radius: 15px; 
+                margin-bottom: 2rem;
+                text-align: center;'>
+        <h2 style='color: white; margin: 0; font-size: 1.5rem; font-weight: 700;'>
+            📊 QR Cleaner Pro
+        </h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Status
+    st.markdown("""
+    <div style='background: #10b981; 
+                color: white; 
+                padding: 0.75rem 1rem; 
+                border-radius: 10px; 
+                text-align: center;
+                font-weight: 600;
+                margin-bottom: 1.5rem;'>
+        🟢 System Active
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Features List
+    st.markdown("""
+    <div style='padding: 0.5rem 0;'>
+        <h3 style='color: #1f2937; font-size: 1rem; font-weight: 700; margin-bottom: 1rem;'>
+            Features
+        </h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style='background: white; 
+                padding: 1rem; 
+                border-radius: 12px; 
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);'>
+        <div style='margin-bottom: 0.75rem; color: #374151; font-size: 0.9rem;'>
+            ✅ Remove duplicates
+        </div>
+        <div style='margin-bottom: 0.75rem; color: #374151; font-size: 0.9rem;'>
+            ✅ Clean mobile numbers
+        </div>
+        <div style='margin-bottom: 0.75rem; color: #374151; font-size: 0.9rem;'>
+            ✅ Standardize dates
+        </div>
+        <div style='margin-bottom: 0.75rem; color: #374151; font-size: 0.9rem;'>
+            ✅ Format Aadhaar/Account
+        </div>
+        <div style='margin-bottom: 0.75rem; color: #374151; font-size: 0.9rem;'>
+            ✅ Add dropdowns
+        </div>
+        <div style='color: #374151; font-size: 0.9rem;'>
+            ✅ Hindi to English
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Main tabs
 tab1, tab2 = st.tabs(["📁 Data Cleaner", "🌐 English Creator"])
@@ -271,7 +343,7 @@ with tab1:
         )
     
     with col2:
-        st.markdown("### Processing Info")
+        st.markdown("### 📊 Processing Info")
         if uploaded_files:
             st.metric("Files Uploaded", len(uploaded_files))
             total_size = sum([f.size for f in uploaded_files]) / 1024
@@ -401,7 +473,7 @@ with tab2:
         input_text = st.text_area(
             "Enter your text (Hindi/Hinglish/English)",
             height=250,
-            placeholder="Example:\nHi",
+            placeholder="Example:\nHi mujhe ye samjah nahee aa rha hee krapya ye detils dobara send kare task par",
             key="input_text"
         )
         
@@ -412,32 +484,44 @@ with tab2:
         
         if convert_button and input_text.strip():
             with st.spinner("🔄 Converting..."):
-                # Translation dictionary
-                translations = {
-                    'mujhe': 'I', 'me': 'me', 'hee': '', 'hai': 'is', 'ka': 'of', 'ke': 'of',
-                    'samjah nahee aa rha': 'unable to understand', 'krapya': 'please',
-                    'ye': 'the', 'detils': 'details', 'dobara': 'again', 'send kare': 'send',
-                    'task par': 'regarding the task', 'kal': 'tomorrow', 'meeting': 'meeting',
-                    'schedule karni': 'schedule', 'team': 'team', 'saath': 'with',
-                    'chahiye': 'need', 'urgent': 'urgent', 'status': 'status', 'update': 'update',
-                    'karo': '', 'complete': 'complete', 'by': 'by', 'evening': 'evening'
-                }
-                
-                # Clean and translate
-                text = input_text.lower()
-                for hindi, english in translations.items():
-                    text = text.replace(hindi, english)
-                
-                # Clean up extra spaces
-                text = ' '.join(text.split())
-                text = text.capitalize()
-                
-                # Generate 3 options
-                st.session_state.option1 = f"Hi, I am {text}. Could you please help with this?"
-                st.session_state.option2 = f"Hello, I would like to request assistance with {text}. Thank you."
-                st.session_state.option3 = f"Hi, need help with {text}."
-                
-                st.success("✅ Converted!")
+                try:
+                    translator = Translator()
+                    
+                    # Translate to English
+                    translated = translator.translate(input_text, src='auto', dest='en')
+                    base_text = translated.text
+                    
+                    # Generate 3 professional versions
+                    # Option 1: Simple & Professional
+                    opt1 = base_text.capitalize()
+                    if not opt1.endswith('.'):
+                        opt1 += '.'
+                    if not opt1.lower().startswith('hi') and not opt1.lower().startswith('hello'):
+                        opt1 = "Hi, " + opt1[0].lower() + opt1[1:]
+                    st.session_state.option1 = opt1
+                    
+                    # Option 2: More Polite & Formal
+                    opt2 = base_text.capitalize()
+                    if not opt2.endswith('.'):
+                        opt2 += '.'
+                    if 'please' not in opt2.lower():
+                        opt2 = opt2.replace('.', '. Thank you.')
+                    if not opt2.lower().startswith('hello'):
+                        opt2 = "Hello, " + opt2[0].lower() + opt2[1:]
+                    st.session_state.option2 = opt2
+                    
+                    # Option 3: Crisp & Professional
+                    opt3 = base_text.capitalize()
+                    if not opt3.endswith('.'):
+                        opt3 += '.'
+                    # Keep it shorter
+                    opt3 = opt3.replace('I am ', "I'm ").replace('could you please', 'please')
+                    st.session_state.option3 = opt3
+                    
+                    st.success("✅ Converted!")
+                    
+                except Exception as e:
+                    st.error("❌ Translation failed. Please check your internet connection.")
         
         # Display options
         if st.session_state.option1:
@@ -475,9 +559,9 @@ with tab2:
         st.markdown("""
 **Example:**
 
-Input: Hello
+Input: Hi mujhe ye samjah nahee aa rha hee krapya ye detils dobara send kare task par
 
-Options will be generated based on your input.
+Output: Professional English versions will be generated automatically.
 """)
 
 # Footer
@@ -487,5 +571,3 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
-
-
