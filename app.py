@@ -198,13 +198,24 @@ def clean_data(df, source_file=None):
             )
             logs.append(f"Formatted Aadhaar column: {col}")
     
-    # 5. Account No formatting
-    if "Account No" in df.columns:
-        df["Account No"] = df["Account No"].astype(str).apply(
-            lambda x: "'" + x.lstrip("'").replace(".0", "")
-            if x.strip() != "" and x.lower() != "nan" else ""
-        )
-        logs.append("Formatted Account No column")
+   # 5. Account No formatting
+if "Account No" in df.columns:
+    def format_account(x):
+        if pd.isna(x) or str(x).strip() == "" or str(x).lower() == "nan":
+            return ""
+        
+        # Convert to string and remove any existing quotes
+        x_str = str(x).strip().lstrip("'")
+        
+        # If it's a float with .0, remove only the .0 part
+        if '.' in x_str and x_str.endswith('.0'):
+            x_str = x_str[:-2]
+        
+        # Add prefix and return
+        return "'" + x_str
+    
+    df["Account No"] = df["Account No"].apply(format_account)
+    logs.append("Formatted Account No column")
     
     # 6. Branch Name → Replace all values with "HO Branch"
     if "Branch Name" in df.columns:
@@ -615,4 +626,5 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
