@@ -401,8 +401,8 @@ with tab2:
         input_text = st.text_area(
             "Enter your text (Hindi/Hinglish/English)",
             height=250,
-            placeholder="Example:\Type Here\n\nया\n\nGet what you want",
-            help="Type or paste your text in Hindi, Hinglish, or English",
+            placeholder="Example:\Type Here\n\n\n\n Output",
+            help="Type or paste your text in Hindi, English, or English",
             key="input_text"
         )
         
@@ -548,4 +548,5 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
