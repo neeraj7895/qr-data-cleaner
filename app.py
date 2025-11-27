@@ -233,7 +233,7 @@ Output:"""
 # Header
 st.markdown("""
 <div class="main-header">
-    <h1 class="main-title">📊 QR Data Cleaner Pro</h1>
+    <h1 class="main-title">QR Data Cleaner Pro</h1>
     <p class="subtitle">Clean, merge & standardize your data efficiently</p>
 </div>
 """, unsafe_allow_html=True)
@@ -271,7 +271,7 @@ with tab1:
         )
     
     with col2:
-        st.markdown("### 📊 Processing Info")
+        st.markdown("### Processing Info")
         if uploaded_files:
             st.metric("Files Uploaded", len(uploaded_files))
             total_size = sum([f.size for f in uploaded_files]) / 1024
@@ -487,4 +487,5 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
