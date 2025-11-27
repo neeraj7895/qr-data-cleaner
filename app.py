@@ -282,7 +282,7 @@ Provide only the professional English version without any explanations.`
                   <div className="text-sm text-blue-800">
                     <p className="font-medium mb-1">How it works:</p>
                     <ul className="space-y-1 text-blue-700">
-                      <li>• Translates Hindi/Hinglish to English</li>
+                      <li>• Translates Hindi/English to English</li>
                       <li>• Improves existing English to corporate standard</li>
                       <li>• Perfect for emails, tasks, and formal communication</li>
                     </ul>
@@ -305,3 +305,4 @@ Provide only the professional English version without any explanations.`
 };
 
 export default QRDataCleanerUI;
+
