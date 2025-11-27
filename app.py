@@ -192,30 +192,41 @@ def clean_data(df, source_file=None):
     # 4. Aadhaar formatting
     for col in ["Aadhar No", "Aadhaar No"]:
         if col in df.columns:
-            df[col] = df[col].astype(str).apply(
-                lambda x: "'" + x.lstrip("'").replace(".0", "")
-                if x.strip() != "" and x.lower() != "nan" else ""
-            )
+            def format_aadhaar(x):
+                if pd.isna(x) or str(x).strip() == "" or str(x).lower() == "nan":
+                    return ""
+                
+                # Convert to string and remove any existing quotes
+                x_str = str(x).strip().lstrip("'")
+                
+                # If it's a float with .0, remove only the .0 part
+                if '.' in x_str and x_str.endswith('.0'):
+                    x_str = x_str[:-2]
+                
+                # Add prefix and return
+                return "'" + x_str
+            
+            df[col] = df[col].apply(format_aadhaar)
             logs.append(f"Formatted Aadhaar column: {col}")
     
-   # 5. Account No formatting
-if "Account No" in df.columns:
-    def format_account(x):
-        if pd.isna(x) or str(x).strip() == "" or str(x).lower() == "nan":
-            return ""
+    # 5. Account No formatting
+    if "Account No" in df.columns:
+        def format_account(x):
+            if pd.isna(x) or str(x).strip() == "" or str(x).lower() == "nan":
+                return ""
+            
+            # Convert to string and remove any existing quotes
+            x_str = str(x).strip().lstrip("'")
+            
+            # If it's a float with .0, remove only the .0 part
+            if '.' in x_str and x_str.endswith('.0'):
+                x_str = x_str[:-2]
+            
+            # Add prefix and return
+            return "'" + x_str
         
-        # Convert to string and remove any existing quotes
-        x_str = str(x).strip().lstrip("'")
-        
-        # If it's a float with .0, remove only the .0 part
-        if '.' in x_str and x_str.endswith('.0'):
-            x_str = x_str[:-2]
-        
-        # Add prefix and return
-        return "'" + x_str
-    
-    df["Account No"] = df["Account No"].apply(format_account)
-    logs.append("Formatted Account No column")
+        df["Account No"] = df["Account No"].apply(format_account)
+        logs.append("Formatted Account No column")
     
     # 6. Branch Name → Replace all values with "HO Branch"
     if "Branch Name" in df.columns:
@@ -274,7 +285,7 @@ async def convert_to_english(text):
                 'max_tokens': 1000,
                 'messages': [{
                     'role': 'user',
-                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or Hinglish, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
+                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or English, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
 
 "{text}"
 
@@ -309,7 +320,7 @@ with st.sidebar:
                 margin-bottom: 2rem;
                 text-align: center;'>
         <h2 style='color: white; margin: 0; font-size: 1.5rem; font-weight: 700;'>
-             QR Cleaner Pro
+            📊 QR Cleaner Pro
         </h2>
     </div>
     """, unsafe_allow_html=True)
@@ -383,7 +394,7 @@ with tab1:
         )
     
     with col2:
-        st.markdown("###  Processing Info")
+        st.markdown("### 📊 Processing Info")
         if uploaded_files:
             st.metric("Files Uploaded", len(uploaded_files))
             total_size = sum([f.size for f in uploaded_files]) / 1024
@@ -511,9 +522,9 @@ with tab2:
     with col_left:
         st.markdown("#### 📝 Input Text")
         input_text = st.text_area(
-            "Enter your text (Hindi/English/English)",
+            "Enter your text (Hindi/Hinglish/English)",
             height=250,
-            placeholder="Example:\nHi",
+            placeholder="Example:\nHello There",
             key="input_text"
         )
         
@@ -614,7 +625,7 @@ with tab2:
         st.markdown("""
 **Example:**
 
-Input: Hi
+Input: HI 
 
 Output: Professional English versions will be generated automatically.
 """)
@@ -623,8 +634,6 @@ Output: Professional English versions will be generated automatically.
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #64748b; padding: 2rem;'>
-    <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
+    <p style='font-size: 0.9rem;'>Made with ❤️ for your team</p>
 </div>
 """, unsafe_allow_html=True)
-
-
