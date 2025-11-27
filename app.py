@@ -386,22 +386,22 @@ Thank you."""
     st.markdown("---")
     with st.expander("ℹ️ How it works"):
         st.markdown("""
-        **This tool helps you:**
-        
-        - 📧 **Translate** Hindi/Hinglish to English
-        - 💼 **Improve** existing English to corporate standard
-        - ✨ **Polish** informal text for professional use
-        - 📝 **Perfect** for emails, tasks, and formal communication
-        
-        **Example:**
-        - Input: "Mujhe kal meeting rakhni hai"
-        - Output: "I need to schedule a meeting tomorrow"
-        
-        **Note:** Currently showing demo mode. To enable real translation:
-        1. Add translation API (Claude/Google Translate)
-        2. Update the conversion logic in the code
-        3. Deploy with API credentials
-        """)
+**This tool helps you:**
+
+- 📧 **Translate** Hindi/Hinglish to English
+- 💼 **Improve** existing English to corporate standard
+- ✨ **Polish** informal text for professional use
+- 📝 **Perfect** for emails, tasks, and formal communication
+
+**Example:**
+- Input: "Mujhe kal meeting rakhni hai"
+- Output: "I need to schedule a meeting tomorrow"
+
+**Note:** Currently showing demo mode. To enable real translation:
+1. Add translation API (Claude/Google Translate)
+2. Update the conversion logic in the code
+3. Deploy with API credentials
+""")
 
 # Footer
 st.markdown("---")
@@ -409,4 +409,4 @@ st.markdown("""
 <div style='text-align: center; color: white; padding: 2rem;'>
     <p style='font-size: 0.9rem;'>Made with ❤️ for your team | Powered by AI</p>
 </div>
-""", unsafe_allow_html=T
+""", unsafe_allow_html=True)
