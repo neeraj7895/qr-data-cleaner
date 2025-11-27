@@ -10,7 +10,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 # Page configuration
 st.set_page_config(
     page_title="QR Data Cleaner Pro",
-    page_icon="",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -215,11 +215,11 @@ def clean_data(df, source_file=None):
             if pd.isna(x) or str(x).strip() == "" or str(x).lower() == "nan":
                 return ""
             
-            # Convert to string and remove any existing quotes
+            # Convert to string (already string from load_excel dtype)
             x_str = str(x).strip().lstrip("'")
             
-            # If it's a float with .0, remove only the .0 part
-            if '.' in x_str and x_str.endswith('.0'):
+            # Remove .0 if present at the end
+            if x_str.endswith('.0'):
                 x_str = x_str[:-2]
             
             # Add prefix and return
@@ -270,8 +270,9 @@ def add_dropdowns(buffer, sheet_name="Cleaned"):
     return output
 
 def load_excel(file):
-    """Load Excel file"""
-    return pd.read_excel(file)
+    """Load Excel file with proper dtype to preserve leading zeros"""
+    # Read with Account No as string to preserve leading zeros
+    return pd.read_excel(file, dtype={'Account No': str, 'Aadhar No': str, 'Aadhaar No': str})
 
 # Function to convert Hindi/Hinglish to English
 async def convert_to_english(text):
@@ -285,7 +286,7 @@ async def convert_to_english(text):
                 'max_tokens': 1000,
                 'messages': [{
                     'role': 'user',
-                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or English, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
+                    'content': f"""Convert the following text to professional corporate English. If it's in Hindi or Hinglish, translate it to English. If it's already in English, improve it for professional communication. Provide ONLY the converted text without any explanation:
 
 "{text}"
 
@@ -305,7 +306,7 @@ Output:"""
 # Header
 st.markdown("""
 <div class="main-header">
-    <h1 class="main-title"> QR Data Cleaner Pro</h1>
+    <h1 class="main-title">📊 QR Data Cleaner Pro</h1>
     <p class="subtitle">Clean, merge & standardize your data</p>
 </div>
 """, unsafe_allow_html=True)
@@ -457,7 +458,8 @@ with tab1:
                                 all_dfs.append(cleaned_df)
                                 all_logs.extend(logs)
                             
-                            merged_df = pd.concat(all_dfs, ignore_index=True)
+                            # Merge with same columns only (no blank columns)
+                            merged_df = pd.concat(all_dfs, ignore_index=True, sort=False)
                             
                             # Remove duplicates in merged
                             if "Mobile No" in merged_df.columns:
@@ -522,9 +524,9 @@ with tab2:
     with col_left:
         st.markdown("#### 📝 Input Text")
         input_text = st.text_area(
-            "Enter your text (Hindi/Hinglish/English)",
+            "Enter your text (Hindi/English/English)",
             height=250,
-            placeholder="Example:\nHello There",
+            placeholder="Example:\nHi",
             key="input_text"
         )
         
@@ -625,7 +627,7 @@ with tab2:
         st.markdown("""
 **Example:**
 
-Input: HI 
+Input: Hi
 
 Output: Professional English versions will be generated automatically.
 """)
