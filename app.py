@@ -413,26 +413,29 @@ tab1, tab2 = st.tabs(["📁 Data Cleaner", "🌐 English Creator"])
 
 # ============= DATA CLEANER TAB =============
 with tab1:
-   col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.markdown("### 📤 Upload Excel Files")
-    uploaded_files = st.file_uploader(
-        "Select one or multiple files (.xlsx, .xls, .csv)",
-        type=["xlsx", "xls", "csv"],
-        accept_multiple_files=True,
-        help="Upload Excel or CSV files to clean and process"
-    )
-
-with col2:
-    st.markdown("### 📊 Processing Info")
-    if uploaded_files:
-        st.metric("Files Uploaded", len(uploaded_files))
-        total_size = sum([f.size for f in uploaded_files]) / 1024
-        st.metric("Total Size", f"{total_size:.1f} KB")
-    else:
-        st.info("No files uploaded yet")
+    col1, col2 = st.columns([2, 1])
     
+    with col1:
+        st.markdown("### 📤 Upload Excel Files")
+        uploaded_files = st.file_uploader(
+            "Select one or multiple files (.xlsx, .xls, .csv)",
+            type=["xlsx", "xls", "csv"],
+            accept_multiple_files=True,
+            help="Upload Excel or CSV files to clean and process"
+        )
+    
+    with col2:
+        st.markdown("### 📊 Processing Info")
+        if uploaded_files:
+            st.metric("Files Uploaded", len(uploaded_files))
+            total_size = sum([f.size for f in uploaded_files]) / 1024
+            st.metric("Total Size", f"{total_size:.1f} KB")
+        else:
+            st.info("No files uploaded yet")
+    
+    if uploaded_files:
+        st.markdown("---")
+        
         # Show uploaded files
         with st.expander("📋 View Uploaded Files", expanded=True):
             for idx, file in enumerate(uploaded_files, 1):
@@ -445,7 +448,6 @@ with col2:
                     st.write("✅ Ready")
         
         st.markdown("---")
-        
         # Process button
         col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
         with col_btn2:
@@ -673,6 +675,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
