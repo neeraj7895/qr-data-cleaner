@@ -413,7 +413,7 @@ tab1, tab2 = st.tabs(["📁 Data Cleaner", "🌐 English Creator"])
 
 # ============= DATA CLEANER TAB =============
 with tab1:
-    col1, col2 = st.columns([2, 1])
+   col1, col2 = st.columns([2, 1])
 
 with col1:
     st.markdown("### 📤 Upload Excel Files")
@@ -677,6 +677,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
