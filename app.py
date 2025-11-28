@@ -288,9 +288,21 @@ def add_dropdowns(buffer, sheet_name="Cleaned"):
     return output
 
 def load_excel(file):
-    """Load Excel file with proper dtype to preserve leading zeros"""
-    # Read with Account No as string to preserve leading zeros
-    return pd.read_excel(file, dtype={'Account No': str, 'Aadhar No': str, 'Aadhaar No': str})
+    """Load Excel/CSV file with proper dtype to preserve leading zeros"""
+    file_extension = file.name.split('.')[-1].lower()
+    
+    try:
+        if file_extension == 'csv':
+            # For CSV files
+            df = pd.read_csv(file, dtype=str)
+        else:
+            # For Excel files (.xlsx, .xls)
+            df = pd.read_excel(file, dtype=str)
+        
+        return df
+    except Exception as e:
+        st.error(f"Error loading file {file.name}: {str(e)}")
+        return None
 
 # Function to convert Hindi/Hinglish to English
 async def convert_to_english(text):
@@ -421,8 +433,9 @@ with tab1:
         else:
             st.info("No files uploaded yet")
     
-    if uploaded_files:
-        st.markdown("---")
+    uploaded_files = st.file_uploader(
+    "Select one or multiple files (.xlsx, .xls, .csv)",
+    type=["xlsx", "xls", "csv"],
         
         # Show uploaded files
         with st.expander("📋 View Uploaded Files", expanded=True):
@@ -446,10 +459,12 @@ with tab1:
                         all_logs = []
                         
                         if len(uploaded_files) == 1:
-                            # Single file processing
-                            df = load_excel(uploaded_files[0])
-                            cleaned_df, logs = clean_data(df, uploaded_files[0].name)
-                            all_logs.extend(logs)
+    # Single file processing
+    df = load_excel(uploaded_files[0])
+    if df is None:
+        st.error("Failed to load file")
+        st.stop()
+    cleaned_df, logs = clean_data(df, uploaded_files[0].name)
                             
                             # Create Excel output
                             output = io.BytesIO()
@@ -469,12 +484,17 @@ with tab1:
                             )
                         else:
                             # Multiple files processing
-                            all_dfs = []
-                            for file in uploaded_files:
-                                df = load_excel(file)
-                                cleaned_df, logs = clean_data(df, file.name)
-                                all_dfs.append(cleaned_df)
-                                all_logs.extend(logs)
+                           all_dfs = []
+for file in uploaded_files:
+    df = load_excel(file)
+    if df is not None:
+        cleaned_df, logs = clean_data(df, file.name)
+        all_dfs.append(cleaned_df)
+        all_logs.extend(logs)
+
+if not all_dfs:
+    st.error("No files could be loaded")
+    st.stop()
                             
                             # Merge with same columns only (no blank columns)
                             merged_df = pd.concat(all_dfs, ignore_index=True, sort=False)
@@ -657,6 +677,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
