@@ -448,6 +448,7 @@ with tab1:
                     st.write("✅ Ready")
         
         st.markdown("---")
+        
         # Process button
         col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
         with col_btn2:
@@ -457,12 +458,13 @@ with tab1:
                         all_logs = []
                         
                         if len(uploaded_files) == 1:
-    # Single file processing
-    df = load_excel(uploaded_files[0])
-    if df is None:
-        st.error("Failed to load file")
-        st.stop()
-    cleaned_df, logs = clean_data(df, uploaded_files[0].name)
+                            # Single file processing
+                            df = load_excel(uploaded_files[0])
+                            if df is None:
+                                st.error("Failed to load file")
+                                st.stop()
+                            cleaned_df, logs = clean_data(df, uploaded_files[0].name)
+                            all_logs.extend(logs)
                             
                             # Create Excel output
                             output = io.BytesIO()
@@ -482,17 +484,17 @@ with tab1:
                             )
                         else:
                             # Multiple files processing
-                           all_dfs = []
-for file in uploaded_files:
-    df = load_excel(file)
-    if df is not None:
-        cleaned_df, logs = clean_data(df, file.name)
-        all_dfs.append(cleaned_df)
-        all_logs.extend(logs)
-
-if not all_dfs:
-    st.error("No files could be loaded")
-    st.stop()
+                            all_dfs = []
+                            for file in uploaded_files:
+                                df = load_excel(file)
+                                if df is not None:
+                                    cleaned_df, logs = clean_data(df, file.name)
+                                    all_dfs.append(cleaned_df)
+                                    all_logs.extend(logs)
+                            
+                            if not all_dfs:
+                                st.error("No files could be loaded")
+                                st.stop()
                             
                             # Merge with same columns only (no blank columns)
                             merged_df = pd.concat(all_dfs, ignore_index=True, sort=False)
@@ -675,6 +677,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
