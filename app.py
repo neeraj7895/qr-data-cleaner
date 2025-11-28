@@ -414,24 +414,24 @@ tab1, tab2 = st.tabs(["📁 Data Cleaner", "🌐 English Creator"])
 # ============= DATA CLEANER TAB =============
 with tab1:
     col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.markdown("### 📤 Upload Excel Files")
-        uploaded_files = st.file_uploader(
-            "Select one or multiple Excel files (.xlsx, .xls)",
-            type=["xlsx", "xls"],
-            accept_multiple_files=True,
-            help="Upload Excel files to clean and process"
-        )
-    
-    with col2:
-        st.markdown("###  Processing Info")
-        if uploaded_files:
-            st.metric("Files Uploaded", len(uploaded_files))
-            total_size = sum([f.size for f in uploaded_files]) / 1024
-            st.metric("Total Size", f"{total_size:.1f} KB")
-        else:
-            st.info("No files uploaded yet")
+
+with col1:
+    st.markdown("### 📤 Upload Excel Files")
+    uploaded_files = st.file_uploader(
+        "Select one or multiple files (.xlsx, .xls, .csv)",
+        type=["xlsx", "xls", "csv"],
+        accept_multiple_files=True,
+        help="Upload Excel or CSV files to clean and process"
+    )
+
+with col2:
+    st.markdown("### 📊 Processing Info")
+    if uploaded_files:
+        st.metric("Files Uploaded", len(uploaded_files))
+        total_size = sum([f.size for f in uploaded_files]) / 1024
+        st.metric("Total Size", f"{total_size:.1f} KB")
+    else:
+        st.info("No files uploaded yet")
     
     uploaded_files = st.file_uploader(
     "Select one or multiple files (.xlsx, .xls, .csv)",
@@ -677,6 +677,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
