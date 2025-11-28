@@ -433,10 +433,6 @@ with col2:
     else:
         st.info("No files uploaded yet")
     
-    uploaded_files = st.file_uploader(
-    "Select one or multiple files (.xlsx, .xls, .csv)",
-    type=["xlsx", "xls", "csv"],
-        
         # Show uploaded files
         with st.expander("📋 View Uploaded Files", expanded=True):
             for idx, file in enumerate(uploaded_files, 1):
@@ -677,6 +673,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
