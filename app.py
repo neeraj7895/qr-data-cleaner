@@ -228,7 +228,7 @@ def clean_data(df, source_file=None):
             df[col] = df[col].apply(format_date)
             logs.append(f"Formatted date column: {col}")
     
-    # 4. Aadhaar formatting
+   # 4. Aadhaar formatting
     for col in ["Aadhar No", "Aadhaar No"]:
         if col in df.columns:
             def format_aadhaar(x):
@@ -238,15 +238,50 @@ def clean_data(df, source_file=None):
                 # Convert to string and remove any existing quotes
                 x_str = str(x).strip().lstrip("'")
                 
-                # If it's a float with .0, remove only the .0 part
-                if '.' in x_str and x_str.endswith('.0'):
-                    x_str = x_str[:-2]
+                # Remove alphabets and special characters (keep only digits)
+                x_str = re.sub(r'[^0-9]', '', x_str)
+                
+                # If empty after cleaning, return empty
+                if not x_str:
+                    return ""
                 
                 # Add prefix and return
                 return "'" + x_str
             
             df[col] = df[col].apply(format_aadhaar)
             logs.append(f"Formatted Aadhaar column: {col}")
+
+    # 5. Address Line 1 cleanup - Remove unwanted special characters
+    if "Address Line 1" in df.columns:
+        def clean_address(x):
+            if pd.isna(x) or str(x).strip() == "":
+                return ""
+            
+            # Convert to string
+            x_str = str(x)
+            
+            # Replace special characters with space
+            x_str = x_str.replace(',', ' ')
+            x_str = x_str.replace('.', ' ')
+            x_str = x_str.replace('/', ' ')
+            x_str = x_str.replace('&', ' ')
+            x_str = x_str.replace('-', ' ')
+            x_str = x_str.replace('"', ' ')
+            x_str = x_str.replace(';', ' ')
+            x_str = x_str.replace('(', ' ')
+            x_str = x_str.replace(')', ' ')
+            x_str = x_str.replace('\\', ' ')
+            
+            # Replace multiple spaces with single space
+            x_str = re.sub(r'\s+', ' ', x_str)
+            
+            # Strip leading/trailing spaces
+            x_str = x_str.strip()
+            
+            return x_str
+        
+        df["Address Line 1"] = df["Address Line 1"].apply(clean_address)
+        logs.append("Cleaned special characters from Address Line 1")
     
     # 5. Account No formatting
     if "Account No" in df.columns:
@@ -735,6 +770,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
