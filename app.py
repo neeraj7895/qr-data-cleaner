@@ -238,12 +238,13 @@ def clean_data(df, source_file=None):
         df["Source_File"] = source_file
         logs.append(f"Added Source_File column: {source_file}")
 
-    # 7. Names cleanup
-    name_cols = ["First Name", "Middle Name", "Last Name", "Entity Name", "Account Holder Name"]
-    for col in name_cols:
-        if col in df.columns:
-            df[col] = df[col].astype(str).str.replace(r"[/\:\|()&#,.;']", " ", regex=True).str.strip()
-            df[col] = df[col].replace("nan", "").replace("NaN", "").replace("None", "")
+  # 7. Names cleanup
+name_cols = ["First Name", "Middle Name", "Last Name", "Entity Name", "Account Holder Name"]
+for col in name_cols:
+    if col in df.columns:
+        # Put hyphen at the start or end of the character class, or escape it
+        df[col] = df[col].astype(str).str.replace(r"[/\:\|()&#,.;'\-]", " ", regex=True).str.strip()
+        df[col] = df[col].replace("nan", "").replace("NaN", "").replace("None", "")
 
 
     # 8. Entity vs Personal Names
@@ -685,6 +686,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
