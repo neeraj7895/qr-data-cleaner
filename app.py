@@ -337,6 +337,19 @@ def clean_data(df, source_file=None):
             if col in df.columns:
                 df.loc[entity_mask, col] = ""   # clear personal names if entity present
         logs.append("Cleared personal names where Entity Name is present")
+
+    # 9. Account Holder Name fallback - Use Entity Name if Account Holder Name is missing
+    if "Account Holder Name" in df.columns and "Entity Name" in df.columns:
+        def fill_account_holder(row):
+            # If Account Holder Name is empty/missing
+            if pd.isna(row["Account Holder Name"]) or str(row["Account Holder Name"]).strip() == "":
+                # Use Entity Name if available
+                if pd.notna(row["Entity Name"]) and str(row["Entity Name"]).strip() != "":
+                    return row["Entity Name"]
+            return row["Account Holder Name"]
+        
+        df["Account Holder Name"] = df.apply(fill_account_holder, axis=1)
+        logs.append("Filled missing Account Holder Names with Entity Name where applicable")
     
     # 9. Address Line 2 fallback - Copy from Address Line 1 if blank
     if "Address Line 1" in df.columns and "Address Line 2" in df.columns:
@@ -770,6 +783,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
