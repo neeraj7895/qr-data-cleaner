@@ -238,27 +238,19 @@ def clean_data(df, source_file=None):
         df["Source_File"] = source_file
         logs.append(f"Added Source_File column: {source_file}")
 
- # 7. Names cleanup
+# 7. Names cleanup
 name_cols = ["First Name", "Middle Name", "Last Name", "Entity Name", "Account Holder Name"]
 for col in name_cols:
     if col in df.columns:
-        # Replace each special character individually
-        df[col] = df[col].astype(str)
-        df[col] = df[col].str.replace('-', ' ', regex=False)
-        df[col] = df[col].str.replace('/', ' ', regex=False)
-        df[col] = df[col].str.replace(':', ' ', regex=False)
-        df[col] = df[col].str.replace('|', ' ', regex=False)
-        df[col] = df[col].str.replace('(', ' ', regex=False)
-        df[col] = df[col].str.replace(')', ' ', regex=False)
-        df[col] = df[col].str.replace('&', ' ', regex=False)
-        df[col] = df[col].str.replace('#', ' ', regex=False)
-        df[col] = df[col].str.replace(',', ' ', regex=False)
-        df[col] = df[col].str.replace('.', ' ', regex=False)
-        df[col] = df[col].str.replace(';', ' ', regex=False)
-        df[col] = df[col].str.replace("'", ' ', regex=False)
-        df[col] = df[col].str.replace(r'\s+', ' ', regex=True).str.strip()
+        # Replace special characters with space
+        df[col] = df[col].astype(str).str.replace(r"[/:\\|()&#,.;'\-]", " ", regex=True)
+        # Replace multiple spaces with single space
+        df[col] = df[col].str.replace(r'\s+', ' ', regex=True)
+        # Strip leading/trailing spaces
+        df[col] = df[col].str.strip()
+        # Remove NaN strings
         df[col] = df[col].replace("nan", "").replace("NaN", "").replace("None", "")
-
+        
     # 8. Entity vs Personal Names
     if "Entity Name" in df.columns:
         entity_mask = df["Entity Name"].notna() & (df["Entity Name"].str.strip() != "")
@@ -698,6 +690,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
