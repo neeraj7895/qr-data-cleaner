@@ -330,11 +330,6 @@ def clean_data(df, source_file=None):
                 df[df_col] = ""
                 logs.append(f"Cleared data from column: {df_col}")
     
-    # 11. Add Source File column if provided
-    if source_file:
-        df["Source_File"] = source_file
-        logs.append(f"Added Source_File column: {source_file}")
-    
     return df, logs
 
 def add_dropdowns(buffer, sheet_name="Cleaned"):
@@ -740,6 +735,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
