@@ -314,12 +314,12 @@ def clean_data(df, source_file=None):
         )
         logs.append("Copied Address Line 1 to Address Line 2 where blank")
     
-   # 10. Clear unwanted columns
-   clear_cols = [
-    "Turnover Type", "Acceptance Type", "Ownership Type", "MCC", 
-    "Email ID", "Bank Cust ID", "State Code (GST)", 
-    "Latitude", "Longitude", "District"
-]
+   # 10. Clear unwanted columns (keep header, clear data)
+    clear_cols = [
+        "Turnover Type", "Acceptance Type", "Ownership Type", "MCC", 
+        "Email ID", "Source_File", "Bank Cust ID", "State Code (GST)", 
+        "Latitude", "Longitude", "District"
+    ]
     
     for col in clear_cols:
         # Find matching columns (case-insensitive, space-insensitive)
@@ -740,6 +740,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
