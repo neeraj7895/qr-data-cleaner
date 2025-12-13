@@ -275,12 +275,23 @@ def clean_data(df, source_file=None):
         )
         logs.append("Copied Address Line 1 to Address Line 2 where blank")
     
-    # 10. Clear unwanted columns (keep header, clear data)
-    clear_cols = [
-        "Turnover Type", "Acceptance Type", "Ownership Type", "MCC", 
-        "Email ID", "Source_File", "Bank Cust ID", "State Code (GST)", 
-        "Latitude", "Longitude", "District"
-    ]
+   clear_cols = [
+    "Turnover Type", "Acceptance Type", "Ownership Type", "MCC", 
+    "Email ID", "Source_File", "Bank Cust ID", "State Code (GST)", 
+    "Latitude", "Longitude", "District"
+]
+```
+
+---
+
+**That's it!** Now the Source_File column will be cleared (emptied) just like the other columns, but the column header will remain.
+
+The column will look like:
+```
+Source_File
+[empty]
+[empty]
+[empty]
     
     for col in clear_cols:
         # Find matching columns (case-insensitive, space-insensitive)
@@ -701,6 +712,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
