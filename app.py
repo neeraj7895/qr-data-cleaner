@@ -233,32 +233,38 @@ def clean_data(df, source_file=None):
         df["Branch Name"] = "HO Branch"
         logs.append("Replaced all values in 'Branch Name' with 'HO Branch'")
     
-    # 7. Add Source File column if multiple uploads
-    if source_file:
-        df["Source_File"] = source_file
-        logs.append(f"Added Source_File column: {source_file}")
-
-# 7. Names cleanup
-name_cols = ["First Name", "Middle Name", "Last Name", "Entity Name", "Account Holder Name"]
-for col in name_cols:
-    if col in df.columns:
-        # Replace special characters with space
-        df[col] = df[col].astype(str).str.replace(r"[/:\\|()&#,.;'\-]", " ", regex=True)
-        # Replace multiple spaces with single space
-        df[col] = df[col].str.replace(r'\s+', ' ', regex=True)
-        # Strip leading/trailing spaces
-        df[col] = df[col].str.strip()
-        # Remove NaN strings
-        df[col] = df[col].replace("nan", "").replace("NaN", "").replace("None", "")
-        
-    # 8. Entity vs Personal Names
+    # 7. Names cleanup - Remove special characters
+    name_cols = ["First Name", "Middle Name", "Last Name", "Entity Name", "Account Holder Name"]
+    for col in name_cols:
+        if col in df.columns:
+            # Replace each special character individually
+            df[col] = df[col].astype(str)
+            df[col] = df[col].str.replace('-', ' ', regex=False)
+            df[col] = df[col].str.replace('/', ' ', regex=False)
+            df[col] = df[col].str.replace(':', ' ', regex=False)
+            df[col] = df[col].str.replace('|', ' ', regex=False)
+            df[col] = df[col].str.replace('(', ' ', regex=False)
+            df[col] = df[col].str.replace(')', ' ', regex=False)
+            df[col] = df[col].str.replace('&', ' ', regex=False)
+            df[col] = df[col].str.replace('#', ' ', regex=False)
+            df[col] = df[col].str.replace(',', ' ', regex=False)
+            df[col] = df[col].str.replace('.', ' ', regex=False)
+            df[col] = df[col].str.replace(';', ' ', regex=False)
+            df[col] = df[col].str.replace("'", ' ', regex=False)
+            df[col] = df[col].str.replace(r'\s+', ' ', regex=True).str.strip()
+            df[col] = df[col].replace("nan", "").replace("NaN", "").replace("None", "")
+    
+    logs.append("Cleaned special characters from name columns")
+    
+    # 8. Entity vs Personal Names - Clear personal names if entity present
     if "Entity Name" in df.columns:
         entity_mask = df["Entity Name"].notna() & (df["Entity Name"].str.strip() != "")
         for col in ["First Name", "Middle Name", "Last Name"]:
             if col in df.columns:
                 df.loc[entity_mask, col] = ""   # clear personal names if entity present
-
-    # If Address Line 2 is blank/NaN → copy from Address Line 1
+        logs.append("Cleared personal names where Entity Name is present")
+    
+    # 9. Address Line 2 fallback - Copy from Address Line 1 if blank
     if "Address Line 1" in df.columns and "Address Line 2" in df.columns:
         df["Address Line 2"] = df.apply(
             lambda r: r["Address Line 1"]
@@ -267,9 +273,9 @@ for col in name_cols:
             else r["Address Line 2"],
             axis=1
         )
-
+        logs.append("Copied Address Line 1 to Address Line 2 where blank")
     
-    # 8. Clear unwanted columns (keep header, clear data)
+    # 10. Clear unwanted columns (keep header, clear data)
     clear_cols = [
         "Turnover Type", "Acceptance Type", "Ownership Type", "MCC", 
         "Email ID", "Source_File", "Bank Cust ID", "State Code (GST)", 
@@ -284,6 +290,11 @@ for col in name_cols:
             if df_col_normalized == col_normalized:
                 df[df_col] = ""
                 logs.append(f"Cleared data from column: {df_col}")
+    
+    # 11. Add Source File column if provided
+    if source_file:
+        df["Source_File"] = source_file
+        logs.append(f"Added Source_File column: {source_file}")
     
     return df, logs
 
@@ -690,6 +701,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
