@@ -140,9 +140,48 @@ st.markdown("""
 # ============= YOUR EXISTING FUNCTIONS =============
 # (Keep all your existing functions here: clean_data, add_dropdowns, load_excel, etc.)
 
+def pre_process_dataframe(df):
+    """
+    Pre-process dataframe before cleaning:
+    1. Delete Source_File column if it exists (any variation)
+    2. Add Branch Name column if it doesn't exist and fill with "HO Branch"
+    """
+    logs = []
+    
+    # 1. Delete Source_File column (any variation)
+    source_file_variations = ["source_file", "sourcefile", "source file"]
+    columns_to_drop = []
+    
+    for df_col in df.columns:
+        df_col_normalized = df_col.lower().replace(" ", "").replace("_", "")
+        if df_col_normalized in source_file_variations:
+            columns_to_drop.append(df_col)
+    
+    if columns_to_drop:
+        df = df.drop(columns=columns_to_drop)
+        logs.append(f"Deleted Source_File column(s): {', '.join(columns_to_drop)}")
+    
+    # 2. Add Branch Name column if it doesn't exist
+    branch_exists = False
+    for df_col in df.columns:
+        df_col_normalized = df_col.lower().replace(" ", "").replace("_", "")
+        if df_col_normalized == "branchname":
+            branch_exists = True
+            break
+    
+    if not branch_exists:
+        df["Branch Name"] = "HO Branch"
+        logs.append("Added 'Branch Name' column with default value 'HO Branch'")
+    
+    return df, logs
+
 def clean_data(df, source_file=None):
     """Your existing clean_data function"""
     logs = []
+    
+    # PRE-PROCESSING: Delete Source_File and add Branch Name if needed
+    df, pre_logs = pre_process_dataframe(df)
+    logs.extend(pre_logs)
     
     # 1. Remove duplicates by Mobile No
     if "Mobile No" in df.columns:
@@ -276,9 +315,9 @@ def clean_data(df, source_file=None):
         logs.append("Copied Address Line 1 to Address Line 2 where blank")
     
    # 10. Clear unwanted columns
-    clear_cols = [
+   clear_cols = [
     "Turnover Type", "Acceptance Type", "Ownership Type", "MCC", 
-    "Email ID", "Source_File", "Bank Cust ID", "State Code (GST)", 
+    "Email ID", "Bank Cust ID", "State Code (GST)", 
     "Latitude", "Longitude", "District"
 ]
     
@@ -701,6 +740,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
