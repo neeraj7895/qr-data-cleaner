@@ -522,7 +522,7 @@ with tab1:
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.markdown("### 📤 Upload Excel Files")
+        st.markdown("###  Upload Excel Files")
         uploaded_files = st.file_uploader(
             "Select one or multiple files (.xlsx, .xls, .csv)",
             type=["xlsx", "xls", "csv"],
@@ -531,7 +531,7 @@ with tab1:
         )
     
     with col2:
-        st.markdown("### 📊 Processing Info")
+        st.markdown("###  Processing Info")
         if uploaded_files:
             st.metric("Files Uploaded", len(uploaded_files))
             total_size = sum([f.size for f in uploaded_files]) / 1024
@@ -783,6 +783,7 @@ st.markdown("""
     <p style='font-size: 0.9rem;'>Made with ❤️ for operations team</p>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
