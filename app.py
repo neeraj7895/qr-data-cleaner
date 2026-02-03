@@ -999,7 +999,7 @@ def render_english_creator_tab():
         input_text = st.text_area(
             "Enter your text",
             height=300,
-            placeholder="Example:\nमुझे यह काम जल्दी चाहिए",
+            placeholder="Example:\nabc",
             key="input_text_translator",
             label_visibility="collapsed"
         )
@@ -1413,3 +1413,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
