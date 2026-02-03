@@ -1004,51 +1004,6 @@ def render_english_creator_tab():
             label_visibility="collapsed"
         )
         
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            convert_button = st.button("✨ CONVERT", use_container_width=True, type="primary")
-        with col_btn2:
-            if st.button("🗑️ CLEAR", use_container_width=True):
-                st.session_state.translation_results = None
-                st.rerun()
-    
-    with col_right:
-        st.markdown("#### ✅ Professional Options")
-        
-        if convert_button and input_text.strip():
-            with st.spinner("🔄 Converting..."):
-                try:
-                    results = translate_to_english(input_text)
-                    st.session_state.translation_results = results
-                    st.success("✅ Converted successfully!")
-                except Exception as e:
-                    st.error(f"❌ Translation failed: {str(e)}")
-        
-        if st.session_state.translation_results:
-            results = st.session_state.translation_results
-            
-            st.markdown("**Option 1** (Simple & Professional)")
-            st.text_area("", value=results['option1'], height=80, key="out1", label_visibility="collapsed")
-            if st.button("📋 COPY OPTION 1", key="copy1", use_container_width=True):
-                st.code(results['option1'], language=None)
-            
-            st.markdown("---")
-            
-            st.markdown("**Option 2** (Polite & Formal)")
-            st.text_area("", value=results['option2'], height=80, key="out2", label_visibility="collapsed")
-            if st.button("📋 COPY OPTION 2", key="copy2", use_container_width=True):
-                st.code(results['option2'], language=None)
-            
-            st.markdown("---")
-            
-            st.markdown("**Option 3** (Crisp & Professional)")
-            st.text_area("", value=results['option3'], height=80, key="out3", label_visibility="collapsed")
-            if st.button("📋 COPY OPTION 3", key="copy3", use_container_width=True):
-                st.code(results['option3'], language=None)
-        else:
-            st.info("👈 Enter text and click Convert")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
 
 def process_files(uploaded_files):
     progress_bar = st.progress(0)
@@ -1413,4 +1368,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
