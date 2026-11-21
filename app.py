@@ -21,95 +21,100 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Simple, OneStack-admin-style CSS (dark sidebar + plain white content area
-# with dark bar section headers, instead of the earlier heavy card/gradient UI)
+# Simple clean BLACK theme (CSS only - no logic depends on this)
+# Tip: also add .streamlit/config.toml with [theme] base="dark" so tables
+# and inputs render dark too.
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    * {
+    html, body, .stApp, .stMarkdown, p, label, li, h1, h2, h3, h4 {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
-    /* Main App Background */
+    /* Main background */
     .stApp {
-        background: #f4f5f7;
+        background: #0a0a0a;
+        color: #e5e5e5;
     }
 
-    /* Sidebar - dark, like OneStack nav */
+    header[data-testid="stHeader"] {
+        background: #0a0a0a;
+    }
+
+    .stApp p, .stApp label, .stApp li, .stApp span,
+    div[data-testid="stCaptionContainer"] {
+        color: #d4d4d4;
+    }
+
+    /* Sidebar */
     section[data-testid="stSidebar"] {
-        background: #111827;
-        border-right: 1px solid rgba(255,255,255,0.06);
+        background: #000000;
+        border-right: 1px solid #1f1f1f;
     }
 
     section[data-testid="stSidebar"] > div {
         padding: 1rem 1.25rem;
     }
 
-    section[data-testid="stSidebar"] .stMarkdown {
-        color: #cbd5e1;
-    }
-
     .sidebar-logo {
-        color: white;
+        color: #ffffff;
         font-size: 1.15rem;
         font-weight: 700;
         padding: 0.75rem 0 1rem 0;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
+        border-bottom: 1px solid #1f1f1f;
         margin-bottom: 1rem;
     }
 
     .sidebar-nav-item {
         padding: 0.6rem 0.25rem;
-        color: #cbd5e1;
+        color: #a3a3a3;
         font-size: 0.9rem;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
+        border-bottom: 1px solid #171717;
     }
 
-    /* Plain top bar, like the OneStack admin header */
+    /* Top bar */
     .top-bar {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
+        background: #111111;
+        border: 1px solid #262626;
+        border-radius: 8px;
         padding: 0.9rem 1.25rem;
         margin-bottom: 1.25rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
     }
 
     .top-bar-title {
         font-size: 1.05rem;
         font-weight: 600;
-        color: #1f2937;
+        color: #ffffff !important;
         margin: 0;
     }
 
-    /* Dark bar section headers, like "Active Soundboxes - Last 7 Days" */
+    /* Section headers */
     .section-bar {
-        background: #1f2937;
-        color: white;
+        background: #111111;
+        color: #ffffff;
         font-weight: 600;
         font-size: 0.95rem;
-        padding: 0.85rem 1.1rem;
+        padding: 0.8rem 1.1rem;
+        border: 1px solid #262626;
+        border-left: 3px solid #ffffff;
         border-radius: 6px;
         margin: 1.25rem 0 0.75rem 0;
     }
 
-    /* Plain content panel */
     .panel {
-        background: white;
-        border: 1px solid #e2e8f0;
+        background: #111111;
+        border: 1px solid #262626;
         border-radius: 6px;
         padding: 1.25rem;
     }
 
-    /* Buttons - simple, single color, no gradients */
-    .stButton > button {
-        background: #1f2937;
-        color: white;
-        border: none;
+    /* Buttons - white on black, simple */
+    .stButton > button, .stDownloadButton > button {
+        background: #ffffff;
+        color: #000000;
+        border: 1px solid #ffffff;
         padding: 0.6rem 1.5rem;
         border-radius: 6px;
         font-weight: 600;
@@ -117,65 +122,93 @@ st.markdown("""
         width: 100%;
     }
 
-    .stButton > button:hover {
-        background: #111827;
+    .stButton > button p, .stDownloadButton > button p {
+        color: #000000 !important;
     }
 
-    /* File Uploader - simple bordered box */
-    section[data-testid="stFileUploader"] {
-        background: #fafafa;
+    .stButton > button:hover, .stDownloadButton > button:hover {
+        background: #d4d4d4;
+        border-color: #d4d4d4;
+        color: #000000;
+    }
+
+    /* File uploader */
+    section[data-testid="stFileUploader"],
+    div[data-testid="stFileUploaderDropzone"] {
+        background: #111111;
         border-radius: 6px;
-        padding: 1.25rem;
-        border: 1px dashed #cbd5e1;
+    }
+
+    div[data-testid="stFileUploaderDropzone"] {
+        border: 1px dashed #404040;
+    }
+
+    section[data-testid="stFileUploader"] button {
+        background: #262626;
+        color: #ffffff;
+        border: 1px solid #404040;
     }
 
     /* Metrics */
     div[data-testid="stMetric"] {
-        background: white;
+        background: #111111;
         padding: 1rem;
         border-radius: 6px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #262626;
     }
 
-    div[data-testid="stMetricLabel"] {
-        color: #64748b;
+    div[data-testid="stMetricLabel"] p {
+        color: #a3a3a3 !important;
         font-size: 0.8rem;
         font-weight: 600;
     }
 
     div[data-testid="stMetricValue"] {
-        color: #1f2937;
+        color: #ffffff;
         font-weight: 700;
         font-size: 1.5rem;
     }
 
-    /* Tabs - simple, no gradient */
+    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 0;
-        background: white;
-        border-radius: 6px;
-        border: 1px solid #e2e8f0;
-        overflow: hidden;
+        gap: 0.25rem;
+        background: transparent;
+        border-bottom: 1px solid #262626;
     }
 
     .stTabs [data-baseweb="tab"] {
-        padding: 0.85rem 1.5rem;
-        font-weight: 600;
-        color: #64748b;
-        background: white;
-        border-right: 1px solid #e2e8f0;
+        padding: 0.75rem 1.25rem;
+        background: transparent;
     }
 
-    .stTabs [aria-selected="true"] {
-        background: #1f2937;
-        color: white;
+    .stTabs [data-baseweb="tab"] p {
+        color: #a3a3a3;
+        font-weight: 600;
+    }
+
+    .stTabs [aria-selected="true"] p {
+        color: #ffffff;
+    }
+
+    .stTabs [data-baseweb="tab-highlight"] {
+        background-color: #ffffff;
+    }
+
+    /* Expander */
+    div[data-testid="stExpander"] details {
+        background: #111111;
+        border: 1px solid #262626;
+        border-radius: 6px;
     }
 
     .footer {
         text-align: center;
-        color: #94a3b8;
         padding: 1.5rem;
         margin-top: 2rem;
+    }
+
+    .footer p {
+        color: #737373 !important;
         font-size: 0.85rem;
     }
 </style>
@@ -457,6 +490,334 @@ def create_mismatch_report(mismatch_files: List[Dict]) -> pd.DataFrame:
     return pd.DataFrame(report_data)
 
 # ---------------------------------------------------------------------------
+# NEW: P2PM FORMAT CLEANING (separate from the old QR logic above)
+# ---------------------------------------------------------------------------
+
+P2PM_SHEET_NAME = "Customer Import"
+
+# Columns whose values are cleared (column is kept, data emptied)
+P2PM_CLEAR_COLUMNS = [
+    "Spouse Name", "Seller Identifier", "MCC", "GST", "Date of Incorporation",
+    "Card Number", "Card Name", "Card Expiry", "Merchant ID", "Store ID",
+    "Terminal ID", "Brand", "Legal", "Franchise", "Merchant Type",
+    "Merchant Genre", "Email ID", "Aadhar Number", "Father Name",
+    "Branch Name", "Center Name", "Bank Cust ID"
+]
+
+
+def norm_col(c) -> str:
+    """Normalize a column name: lowercase, remove spaces/underscores (handles double spaces)."""
+    return re.sub(r"[\s_]+", "", str(c)).lower()
+
+
+def find_col(df: pd.DataFrame, name: str) -> Optional[str]:
+    target = norm_col(name)
+    for c in df.columns:
+        if norm_col(c) == target:
+            return c
+    return None
+
+
+def find_header_row(raw: pd.DataFrame, max_scan: int = 25) -> Optional[int]:
+    """P2PM files have note rows on top. Find the row that contains 'Mobile No'."""
+    for i in range(min(max_scan, len(raw))):
+        values = [norm_col(v) for v in raw.iloc[i].tolist() if pd.notna(v)]
+        if "mobileno" in values:
+            return i
+    return None
+
+
+def load_p2pm(file) -> Tuple[Optional[pd.DataFrame], Optional[dict], str]:
+    """
+    Load a P2PM file. Returns (dataframe, template_info, error).
+    template_info = {'bytes', 'sheet', 'header_row'} for .xlsx files (used to keep the format).
+    """
+    file_extension = file.name.split('.')[-1].lower()
+    try:
+        file.seek(0)
+        sheet = None
+        if file_extension == 'csv':
+            raw = pd.read_csv(file, dtype=str, header=None)
+        else:
+            xls = pd.ExcelFile(file)
+            sheet = next(
+                (s for s in xls.sheet_names if norm_col(s) == norm_col(P2PM_SHEET_NAME)),
+                xls.sheet_names[0]
+            )
+            raw = pd.read_excel(xls, sheet_name=sheet, dtype=str, header=None)
+
+        header_idx = find_header_row(raw)
+        if header_idx is None:
+            return None, None, "Header row with 'Mobile No' not found"
+
+        headers = raw.iloc[header_idx].tolist()
+        keep_positions = [i for i, h in enumerate(headers) if pd.notna(h) and str(h).strip() != ""]
+        df = raw.iloc[header_idx + 1:, keep_positions].copy()
+        df.columns = [re.sub(r"\s+", " ", str(headers[i])).strip() for i in keep_positions]
+        df = df.dropna(how="all").reset_index(drop=True)
+
+        template = None
+        if file_extension == 'xlsx':
+            template = {
+                'bytes': file.getvalue(),
+                'sheet': sheet,
+                'header_row': header_idx + 1  # Excel row number (1-based)
+            }
+
+        logger.info(f"Loaded P2PM file: {file.name} (header at row {header_idx + 1})")
+        return df, template, ""
+    except Exception as e:
+        logger.error(f"Error loading P2PM file {file.name}: {str(e)}")
+        return None, None, str(e)
+
+
+def clean_p2pm_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
+    """Clean P2PM data using the same rules as the QR cleaner for the matching columns."""
+    logs = []
+    df = df.copy()
+
+    try:
+        # Mobile No - remove duplicates, then clean (same rule as QR)
+        mobile_col = find_col(df, "Mobile No")
+        if mobile_col:
+            before = len(df)
+            df = df.drop_duplicates(subset=[mobile_col], keep="first")
+            after = len(df)
+            if before > after:
+                logs.append(f"✓ Removed {before - after} duplicate mobile numbers")
+            # strip a trailing '.0' (Excel number) before the QR mobile rule
+            df[mobile_col] = df[mobile_col].apply(
+                lambda v: clean_mobile_number(re.sub(r"\.0$", "", str(v).strip()))
+            )
+            logs.append("✓ Cleaned mobile numbers")
+
+        # Account Opening Date - same date rule as QR
+        date_col = find_col(df, "Account Opening Date")
+        if date_col:
+            df[date_col] = df[date_col].apply(format_date)
+            logs.append(f"✓ Formatted date column: {date_col}")
+
+        # Account Number - same rule as QR 'Account No'
+        acc_col = find_col(df, "Account Number")
+        if acc_col:
+            df[acc_col] = df[acc_col].apply(format_account_number)
+            logs.append(f"✓ Formatted {acc_col}")
+
+        # Names - same rule as QR
+        name_cols = {}
+        for name in ["First Name", "Middle Name", "Last Name", "Entity Name", "Account Name"]:
+            c = find_col(df, name)
+            if c:
+                df[c] = df[c].apply(clean_name)
+                name_cols[name] = c
+        logs.append("✓ Cleaned name columns")
+
+        # Entity Name present -> clear personal names (same rule as QR)
+        if "Entity Name" in name_cols:
+            ent = name_cols["Entity Name"]
+            entity_mask = df[ent].notna() & (df[ent].str.strip() != "")
+            for name in ["First Name", "Middle Name", "Last Name"]:
+                if name in name_cols:
+                    df.loc[entity_mask, name_cols[name]] = ""
+            logs.append("✓ Cleared personal names where Entity Name present")
+
+        # Account Name empty -> fill from Entity Name (same as QR 'Account Holder Name')
+        if "Account Name" in name_cols and "Entity Name" in name_cols:
+            acc_name, ent = name_cols["Account Name"], name_cols["Entity Name"]
+            mask = df[acc_name].isna() | (df[acc_name].str.strip() == "")
+            entity_mask = df[ent].notna() & (df[ent].str.strip() != "")
+            df.loc[mask & entity_mask, acc_name] = df.loc[mask & entity_mask, ent]
+            logs.append("✓ Filled Account Name from Entity Name")
+
+        # IFSC Code & PAN - trim spaces, uppercase
+        for name in ["IFSC Code", "PAN"]:
+            c = find_col(df, name)
+            if c:
+                df[c] = df[c].fillna("").astype(str).str.replace(r"\s+", "", regex=True).str.upper()
+                logs.append(f"✓ Cleaned {c}")
+
+        # Clear not-needed columns
+        for name in P2PM_CLEAR_COLUMNS:
+            c = find_col(df, name)
+            if c:
+                df[c] = ""
+                logs.append(f"✓ Cleared: {c}")
+
+        return df, logs
+
+    except Exception as e:
+        logger.error(f"Error in clean_p2pm_data: {str(e)}")
+        logs.append(f"❌ Error: {str(e)}")
+        return df, logs
+
+
+def write_p2pm_excel(df: pd.DataFrame, template: Optional[dict]) -> io.BytesIO:
+    """
+    Write cleaned data back into the original P2PM template (keeps note rows,
+    header row, helper sheets and dropdowns). Falls back to a plain sheet.
+    """
+    if template is not None:
+        try:
+            wb = load_workbook(io.BytesIO(template['bytes']))
+            ws = wb[template['sheet']]
+            header_row = template['header_row']
+
+            col_map = {}
+            for cell in ws[header_row]:
+                if cell.value is not None and str(cell.value).strip() != "":
+                    col_map[norm_col(cell.value)] = cell.column
+
+            # remove old data rows
+            if ws.max_row > header_row:
+                ws.delete_rows(header_row + 1, ws.max_row - header_row)
+
+            columns = list(df.columns)
+            for r_idx, row in enumerate(df.itertuples(index=False), start=header_row + 1):
+                for col_name, value in zip(columns, row):
+                    target = col_map.get(norm_col(col_name))
+                    if target is None:
+                        continue
+                    if value is None or (isinstance(value, float) and pd.isna(value)) or str(value) == "":
+                        value = None
+                    ws.cell(row=r_idx, column=target, value=value)
+
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            return output
+        except Exception as e:
+            logger.error(f"Template write failed, using plain sheet: {str(e)}")
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.fillna("").to_excel(writer, index=False, sheet_name=P2PM_SHEET_NAME)
+    output.seek(0)
+    return output
+
+
+def render_p2pm_tab():
+    st.markdown('<div class="section-bar">🆕 New P2PM Upload</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="panel">', unsafe_allow_html=True)
+    st.caption("Upload one or multiple P2PM files. One file gives one cleaned file; "
+               "multiple files are cleaned and merged into one file in the same P2PM format.")
+
+    p2pm_files = st.file_uploader(
+        "Select P2PM file(s) (.xlsx, .xls, .csv)",
+        type=["xlsx", "xls", "csv"],
+        accept_multiple_files=True,
+        key="file_uploader_p2pm"
+    )
+
+    if p2pm_files:
+        st.caption(f"{len(p2pm_files)} file(s) selected")
+
+    st.button("🧹 Clean P2PM Files", key="process_p2pm",
+              on_click=lambda: st.session_state.update({"_run_p2pm": True}))
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if p2pm_files and st.session_state.get("_run_p2pm"):
+        st.session_state["_run_p2pm"] = False
+        process_p2pm_files(p2pm_files)
+
+
+def process_p2pm_files(uploaded_files):
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    try:
+        all_logs = []
+        all_dfs = []
+        failed = []
+        template = None
+
+        for idx, file in enumerate(uploaded_files):
+            status_text.text(f"Processing {idx + 1}/{len(uploaded_files)}: {file.name}")
+            df, file_template, error = load_p2pm(file)
+
+            if df is None:
+                failed.append({'File Name': file.name, 'Error/Issue': error})
+            else:
+                cleaned_df, logs = clean_p2pm_data(df)
+                all_dfs.append(cleaned_df)
+                all_logs.append(f"📄 {file.name} — {len(cleaned_df)} rows")
+                all_logs.extend(logs)
+                if template is None and file_template is not None:
+                    template = file_template
+
+            progress_bar.progress((idx + 1) / (len(uploaded_files) + 1))
+
+        if not all_dfs:
+            st.error("❌ No files could be processed")
+            if failed:
+                st.dataframe(pd.DataFrame(failed), use_container_width=True)
+            progress_bar.empty()
+            status_text.empty()
+            return
+
+        if len(all_dfs) == 1:
+            final_df = all_dfs[0]
+        else:
+            status_text.text("Merging files...")
+            final_df = pd.concat(all_dfs, ignore_index=True, sort=False)
+            mobile_col = find_col(final_df, "Mobile No")
+            if mobile_col:
+                before = len(final_df)
+                final_df = final_df.drop_duplicates(subset=[mobile_col], keep="first")
+                if before > len(final_df):
+                    all_logs.append(f"✓ Removed {before - len(final_df)} duplicates from merged data")
+
+        status_text.text("Creating Excel file...")
+        final_output = write_p2pm_excel(final_df, template)
+        progress_bar.progress(1.0)
+
+        if len(uploaded_files) == 1:
+            base = os.path.splitext(uploaded_files[0].name)[0]
+            out_name = f"Cleaned_{base}.xlsx"
+        else:
+            out_name = f"P2PM_Cleaned_Merged_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+        st.success("✅ P2PM file(s) processed successfully!")
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Files Processed", len(all_dfs))
+        with col2:
+            st.metric("Failed", len(failed))
+        with col3:
+            st.metric("Total Rows", len(final_df))
+        with col4:
+            st.metric("Columns", len(final_df.columns))
+
+        st.markdown('<div class="section-bar">📄 Preview</div>', unsafe_allow_html=True)
+        st.dataframe(final_df.head(10).fillna(""), use_container_width=True)
+
+        if failed:
+            st.warning(f"⚠️ {len(failed)} file(s) could not be processed")
+            st.dataframe(pd.DataFrame(failed), use_container_width=True)
+
+        st.download_button(
+            "⬇️ Download Cleaned P2PM File",
+            data=final_output.getvalue(),
+            file_name=out_name,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+
+        with st.expander("📝 View Cleaning Logs"):
+            for log in all_logs:
+                st.write(log)
+
+        progress_bar.empty()
+        status_text.empty()
+
+    except Exception as e:
+        logger.error(f"Error processing P2PM files: {str(e)}")
+        st.error(f"❌ Error: {str(e)}")
+        progress_bar.empty()
+        status_text.empty()
+
+# ---------------------------------------------------------------------------
 # UI COMPONENTS (simplified, English Creator module removed)
 # ---------------------------------------------------------------------------
 
@@ -470,11 +831,12 @@ def render_sidebar():
         <div class='sidebar-nav-item'>✅ Bank Name Column Addition</div>
         <div class='sidebar-nav-item'>✅ Mismatch Report Generation</div>
         <div class='sidebar-nav-item'>✅ Column Validation</div>
+        <div class='sidebar-nav-item'>🆕 New P2PM Format Cleaning</div>
         """, unsafe_allow_html=True)
 
         st.markdown("---")
         st.markdown(
-            "<div style='color:#94a3b8; font-size:0.75rem; text-align:center;'>Version 3.0<br>Updated: February 2026</div>",
+            "<div style='color:#737373; font-size:0.75rem; text-align:center;'>Version 3.1<br>Updated: November 2026</div>",
             unsafe_allow_html=True
         )
 
@@ -854,7 +1216,7 @@ def main():
 
     render_sidebar()
 
-    tab1, tab2 = st.tabs(["📁 QR Data Cleaner", "📂 Bulk Master Creator"])
+    tab1, tab2, tab3 = st.tabs(["📁 QR Data Cleaner", "📂 Bulk Master Creator", "🆕 New P2PM"])
 
     with tab1:
         render_data_cleaner_tab()
@@ -862,9 +1224,12 @@ def main():
     with tab2:
         render_bulk_processor_tab()
 
+    with tab3:
+        render_p2pm_tab()
+
     st.markdown("""
     <div class="footer">
-        <p>QR Data Cleaner Pro v3.0 | © 2026</p>
+        <p>QR Data Cleaner Pro v3.1 | © 2026</p>
     </div>
     """, unsafe_allow_html=True)
 
