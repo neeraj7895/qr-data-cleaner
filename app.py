@@ -571,12 +571,97 @@ def load_p2pm(file) -> Tuple[Optional[pd.DataFrame], Optional[dict], str]:
         return None, None, str(e)
 
 
-def clean_p2pm_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
-    """Clean P2PM data using the same rules as the QR cleaner for the matching columns."""
+# ----- P2PM-only rules -------------------------------------------------------
+
+P2PM_TITLES = ["MR.", "MS.", "MRS."]
+
+# Words people type in the Title column / in front of a name -> one of the 3 titles
+TITLE_WORD_MAP = {
+    "MR": "MR.", "SHRI": "MR.", "SHREE": "MR.", "SRI": "MR.", "SH": "MR.", "MASTER": "MR.",
+    "MRS": "MRS.", "SMT": "MRS.", "SHRIMATI": "MRS.", "SHREEMATI": "MRS.",
+    "MS": "MS.", "MISS": "MS.", "KUM": "MS.", "KUMARI": "MS.",
+}
+
+# Name-ending hints (checked on the FIRST word of the name only)
+FEMALE_ENDINGS = ("ben", "bahen", "behen", "bai", "devi", "kumari", "kaur")
+MALE_ENDINGS = ("bhai", "kumar", "singh", "lal", "chand", "bhau", "das", "nath", "ram", "dev")
+MALE_NAMES_ENDING_A_I = {
+    "ravi", "hari", "rishi", "mani", "muni", "giri", "ali", "sai", "krishna", "rama",
+    "shiva", "aditya", "chaitanya", "surya", "satya", "kanha", "bhanu", "joshi", "ji",
+    "abhi", "sunny", "bunty", "monty", "nikki", "vicky", "ricky", "pintu", "raja", "mohammadi",
+}
+FEMALE_NAMES_OTHER = {
+    "kiran", "jasmin", "yasmin", "nasrin", "parveen", "shirin", "mehrunnisa", "sharmin",
+    "noor", "nur", "gul", "roshan", "nirmal", "kamal", "sonal", "payal", "kajal", "komal",
+    "hetal", "minal", "rupal", "bijal", "chhaya", "dimple", "jinal", "khushbu", "mittal",
+    "nidhi", "foram", "dhwani", "urvashi", "trupti", "pooja", "rinkal", "sejal", "shital",
+    "vaishali", "dharmishtha", "jagruti", "jyoti", "falguni",
+}
+
+PAN_PATTERN = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
+
+
+def is_blank(v) -> bool:
+    return v is None or (isinstance(v, float) and pd.isna(v)) or str(v).strip().lower() in ("", "nan", "none")
+
+
+def strict_clean_text(x) -> str:
+    """Only letters, numbers and single spaces. No comma, dot, slash or any other sign."""
+    if is_blank(x):
+        return ""
+    x_str = re.sub(r"[^A-Za-z0-9 ]", " ", str(x))
+    return re.sub(r"\s+", " ", x_str).strip()
+
+
+def normalize_title(x) -> str:
+    """Return MR. / MS. / MRS. if the value can be understood, else ''."""
+    if is_blank(x):
+        return ""
+    raw = str(x).strip().upper()
+    if re.match(r"^M\s*/\s*S\b", raw):        # M/S = firm, not a person title
+        return ""
+    letters = re.sub(r"[^A-Z]", "", raw)
+    return TITLE_WORD_MAP.get(letters, "")
+
+
+def guess_gender(first_word: str) -> str:
+    """Rough guess from the first word of a name: 'F', 'M' or ''."""
+    w = re.sub(r"[^a-z]", "", str(first_word).lower())
+    if len(w) < 2:
+        return ""
+    if w in FEMALE_NAMES_OTHER:
+        return "F"
+    if w in MALE_NAMES_ENDING_A_I:
+        return "M"
+    if w.endswith(FEMALE_ENDINGS):
+        return "F"
+    if w.endswith(MALE_ENDINGS):
+        return "M"
+    if w.endswith(("a", "i", "ee")):
+        return "F"
+    return "M"
+
+
+def clean_p2pm_data(df: pd.DataFrame, file_name: str = "") -> Tuple[pd.DataFrame, List[str], List[Dict]]:
+    """
+    Clean P2PM data.
+    Returns (df, logs, issues). df has a helper column '__row_id' used for the
+    issues report; it is not written to Excel.
+    """
     logs = []
+    issues = []
     df = df.copy()
 
     try:
+        df["__row_id"] = [f"{file_name}|{i}" for i in range(len(df))]
+
+        def add_issue(row_id, mobile, column, original, issue):
+            issues.append({
+                "__row_id": row_id, "File Name": file_name, "Mobile No": mobile,
+                "Column": column, "Original Value": "" if is_blank(original) else str(original),
+                "Issue": issue
+            })
+
         # Mobile No - remove duplicates, then clean (same rule as QR)
         mobile_col = find_col(df, "Mobile No")
         if mobile_col:
@@ -585,11 +670,13 @@ def clean_p2pm_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
             after = len(df)
             if before > after:
                 logs.append(f"✓ Removed {before - after} duplicate mobile numbers")
-            # strip a trailing '.0' (Excel number) before the QR mobile rule
             df[mobile_col] = df[mobile_col].apply(
                 lambda v: clean_mobile_number(re.sub(r"\.0$", "", str(v).strip()))
             )
             logs.append("✓ Cleaned mobile numbers")
+
+        def mobile_of(idx):
+            return df.at[idx, mobile_col] if mobile_col else ""
 
         # Account Opening Date - same date rule as QR
         date_col = find_col(df, "Account Opening Date")
@@ -603,59 +690,197 @@ def clean_p2pm_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
             df[acc_col] = df[acc_col].apply(format_account_number)
             logs.append(f"✓ Formatted {acc_col}")
 
-        # Names - same rule as QR
-        name_cols = {}
-        for name in ["First Name", "Middle Name", "Last Name", "Entity Name", "Account Name"]:
-            c = find_col(df, name)
-            if c:
-                df[c] = df[c].apply(clean_name)
-                name_cols[name] = c
-        logs.append("✓ Cleaned name columns")
+        ent_col = find_col(df, "Entity Name")
+        first_col = find_col(df, "First Name")
+        middle_col = find_col(df, "Middle Name")
+        last_col = find_col(df, "Last Name")
+        accname_col = find_col(df, "Account Name")
+        title_col = find_col(df, "Title")
+        marital_col = find_col(df, "Marital Status")
+        personal_cols = [c for c in [first_col, middle_col, last_col] if c]
 
-        # Entity Name present -> clear personal names (same rule as QR)
-        if "Entity Name" in name_cols:
-            ent = name_cols["Entity Name"]
-            entity_mask = df[ent].notna() & (df[ent].str.strip() != "")
-            for name in ["First Name", "Middle Name", "Last Name"]:
-                if name in name_cols:
-                    df.loc[entity_mask, name_cols[name]] = ""
-            logs.append("✓ Cleared personal names where Entity Name present")
+        if ent_col is None:
+            ent_col = "Entity Name"
+            df[ent_col] = ""
 
-        # Account Name empty -> fill from Entity Name (same as QR 'Account Holder Name')
-        if "Account Name" in name_cols and "Entity Name" in name_cols:
-            acc_name, ent = name_cols["Account Name"], name_cols["Entity Name"]
-            mask = df[acc_name].isna() | (df[acc_name].str.strip() == "")
-            entity_mask = df[ent].notna() & (df[ent].str.strip() != "")
-            df.loc[mask & entity_mask, acc_name] = df.loc[mask & entity_mask, ent]
-            logs.append("✓ Filled Account Name from Entity Name")
+        # Keep original title & find a title written in front of the name (e.g. "Mrs Dhruvi")
+        original_titles = df[title_col].copy() if title_col else None
+        name_prefix_title = {}
+        for idx in df.index:
+            for c in [first_col, ent_col]:
+                if not c or is_blank(df.at[idx, c]):
+                    continue
+                words = strict_clean_text(df.at[idx, c]).split(" ")
+                if len(words) > 1 and words[0].upper() in TITLE_WORD_MAP:
+                    name_prefix_title.setdefault(idx, TITLE_WORD_MAP[words[0].upper()])
+                    df.at[idx, c] = " ".join(words[1:])
 
-        # IFSC Code & PAN - trim spaces, uppercase
-        for name in ["IFSC Code", "PAN"]:
-            c = find_col(df, name)
-            if c:
-                df[c] = df[c].fillna("").astype(str).str.replace(r"\s+", "", regex=True).str.upper()
-                logs.append(f"✓ Cleaned {c}")
+        # Names - strict clean: no special characters at all
+        for c in personal_cols + [ent_col] + ([accname_col] if accname_col else []):
+            df[c] = df[c].apply(strict_clean_text)
+        logs.append("✓ Cleaned names (only letters, numbers and spaces)")
 
-        # Clear not-needed columns
+        # Entity Name rule
+        filled_entity = 0
+        cleared_personal = 0
+        for idx in df.index:
+            if df.at[idx, ent_col] != "":
+                if any(df.at[idx, c] != "" for c in personal_cols):
+                    cleared_personal += 1
+                for c in personal_cols:
+                    df.at[idx, c] = ""
+            else:
+                full = " ".join(df.at[idx, c] for c in personal_cols if df.at[idx, c] != "")
+                full = strict_clean_text(full)
+                if full:
+                    df.at[idx, ent_col] = full
+                    filled_entity += 1
+                else:
+                    add_issue(df.at[idx, "__row_id"], mobile_of(idx), ent_col, "",
+                              "Entity Name missing (mandatory) - no First/Middle/Last Name to copy")
+        if cleared_personal:
+            logs.append(f"✓ Entity Name present: cleared First/Middle/Last Name in {cleared_personal} rows")
+        if filled_entity:
+            logs.append(f"✓ Entity Name empty: filled from First/Middle/Last Name in {filled_entity} rows")
+
+        # Account Name - fill from Entity Name if empty
+        if accname_col:
+            mask = df[accname_col] == ""
+            df.loc[mask, accname_col] = df.loc[mask, ent_col]
+            logs.append("✓ Account Name cleaned (no special characters), empty ones filled from Entity Name")
+
+        # Title - only MR. / MS. / MRS.
+        if title_col:
+            fixed, guessed = 0, 0
+            for idx in df.index:
+                orig = original_titles.at[idx]
+                title = normalize_title(orig) or name_prefix_title.get(idx, "")
+                if title:
+                    if str(orig).strip() != title:
+                        fixed += 1
+                else:
+                    first_word = df.at[idx, ent_col].split(" ")[0] if df.at[idx, ent_col] else ""
+                    gender = guess_gender(first_word)
+                    married = marital_col and str(df.at[idx, marital_col]).strip().lower() == "married"
+                    if gender == "F":
+                        title = "MRS." if married else "MS."
+                    else:
+                        title = "MR."
+                    guessed += 1
+                    add_issue(df.at[idx, "__row_id"], mobile_of(idx), title_col, orig,
+                              f"Title guessed from name '{first_word}' as {title} - please check")
+                df.at[idx, title_col] = title
+            logs.append(f"✓ Title set to MR./MS./MRS. ({fixed} fixed, {guessed} guessed from name)")
+
+        # IFSC Code - trim spaces, uppercase (unchanged)
+        ifsc_col = find_col(df, "IFSC Code")
+        if ifsc_col:
+            df[ifsc_col] = df[ifsc_col].fillna("").astype(str).str.replace(r"\s+", "", regex=True).str.upper()
+            logs.append(f"✓ Cleaned {ifsc_col}")
+
+        # PAN - mandatory, 5 letters + 4 numbers + 1 letter, else blank
+        pan_col = find_col(df, "PAN")
+        if pan_col:
+            valid, removed, missing = 0, 0, 0
+            for idx in df.index:
+                orig = df.at[idx, pan_col]
+                pan = "" if is_blank(orig) else re.sub(r"[^A-Za-z0-9]", "", str(orig)).upper()
+                if PAN_PATTERN.match(pan):
+                    df.at[idx, pan_col] = pan
+                    valid += 1
+                else:
+                    df.at[idx, pan_col] = ""
+                    if pan:
+                        removed += 1
+                        add_issue(df.at[idx, "__row_id"], mobile_of(idx), pan_col, orig,
+                                  "Invalid PAN removed (must be 5 letters + 4 numbers + 1 letter)")
+                    else:
+                        missing += 1
+                        add_issue(df.at[idx, "__row_id"], mobile_of(idx), pan_col, "",
+                                  "PAN missing (mandatory)")
+            logs.append(f"✓ PAN checked: {valid} valid, {removed} invalid removed, {missing} missing")
+
+        # Clear not-needed columns (header stays, data emptied)
         for name in P2PM_CLEAR_COLUMNS:
             c = find_col(df, name)
             if c:
                 df[c] = ""
                 logs.append(f"✓ Cleared: {c}")
 
-        return df, logs
+        return df, logs, issues
 
     except Exception as e:
         logger.error(f"Error in clean_p2pm_data: {str(e)}")
         logs.append(f"❌ Error: {str(e)}")
-        return df, logs
+        return df, logs, issues
 
 
-def write_p2pm_excel(df: pd.DataFrame, template: Optional[dict]) -> io.BytesIO:
+def read_extra_dropdowns(xlsx_bytes: bytes, sheet_name: str) -> List[Tuple[str, str]]:
     """
-    Write cleaned data back into the original P2PM template (keeps note rows,
-    header row, helper sheets and dropdowns). Falls back to a plain sheet.
+    Read the dropdowns that point to another sheet (e.g. 'Account Type'!$AI$2:$AI$4).
+    Excel stores these in a special section that openpyxl drops, so we read them
+    from the original file and add them back. Returns [(formula, cell_range)].
     """
+    import zipfile
+    try:
+        with zipfile.ZipFile(io.BytesIO(xlsx_bytes)) as z:
+            workbook_xml = z.read("xl/workbook.xml").decode("utf-8")
+            rels_xml = z.read("xl/_rels/workbook.xml.rels").decode("utf-8")
+
+            rid = None
+            for m in re.finditer(r"<sheet\b[^>]*>", workbook_xml):
+                tag = m.group(0)
+                name = re.search(r'name="([^"]*)"', tag)
+                if name and name.group(1) == sheet_name:
+                    r = re.search(r'r:id="([^"]*)"', tag)
+                    rid = r.group(1) if r else None
+                    break
+            if rid is None:
+                return []
+
+            target = None
+            for m in re.finditer(r"<Relationship\b[^>]*>", rels_xml):
+                tag = m.group(0)
+                if f'Id="{rid}"' in tag:
+                    target = re.search(r'Target="([^"]*)"', tag).group(1)
+                    break
+            if target is None:
+                return []
+            path = target.lstrip("/") if target.startswith("/") else "xl/" + target
+            sheet_xml = z.read(path).decode("utf-8")
+
+        result = []
+        for m in re.finditer(r"<x14:dataValidation\b.*?</x14:dataValidation>", sheet_xml, re.S):
+            block = m.group(0)
+            if 'type="list"' not in block:
+                continue
+            f = re.search(r"<xm:f>(.*?)</xm:f>", block, re.S)
+            ref = re.search(r"<xm:sqref>(.*?)</xm:sqref>", block, re.S)
+            if f and ref:
+                formula = (f.group(1).replace("&amp;", "&").replace("&quot;", '"')
+                           .replace("&apos;", "'").replace("&lt;", "<").replace("&gt;", ">"))
+                result.append((formula, ref.group(1).strip()))
+        return result
+    except Exception as e:
+        logger.error(f"Could not read extra dropdowns: {str(e)}")
+        return []
+
+
+def write_p2pm_excel(df: pd.DataFrame, template: Optional[dict],
+                     highlight: Optional[Dict[int, List[str]]] = None) -> io.BytesIO:
+    """
+    Write cleaned data back into the original P2PM template. Keeps note rows,
+    header row, helper sheets and ALL dropdowns. Cells with issues are
+    highlighted yellow so they are easy to check. Falls back to a plain sheet.
+    highlight = {dataframe position: [column names]}
+    """
+    from openpyxl.styles import PatternFill
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    yellow = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+    highlight = highlight or {}
+    df = df.drop(columns=["__row_id"], errors="ignore")
+
     if template is not None:
         try:
             wb = load_workbook(io.BytesIO(template['bytes']))
@@ -672,14 +897,25 @@ def write_p2pm_excel(df: pd.DataFrame, template: Optional[dict]) -> io.BytesIO:
                 ws.delete_rows(header_row + 1, ws.max_row - header_row)
 
             columns = list(df.columns)
-            for r_idx, row in enumerate(df.itertuples(index=False), start=header_row + 1):
+            for pos, row in enumerate(df.itertuples(index=False)):
+                r_idx = header_row + 1 + pos
+                flagged = {norm_col(c) for c in highlight.get(pos, [])}
                 for col_name, value in zip(columns, row):
                     target = col_map.get(norm_col(col_name))
                     if target is None:
                         continue
-                    if value is None or (isinstance(value, float) and pd.isna(value)) or str(value) == "":
+                    if is_blank(value):
                         value = None
-                    ws.cell(row=r_idx, column=target, value=value)
+                    cell = ws.cell(row=r_idx, column=target, value=value)
+                    if norm_col(col_name) in flagged:
+                        cell.fill = yellow
+
+            # add back the dropdowns that openpyxl drops
+            for formula, cell_range in read_extra_dropdowns(template['bytes'], template['sheet']):
+                dv = DataValidation(type="list", formula1=formula, allow_blank=True,
+                                    showErrorMessage=True, showInputMessage=True)
+                dv.add(cell_range)
+                ws.add_data_validation(dv)
 
             output = io.BytesIO()
             wb.save(output)
@@ -700,7 +936,8 @@ def render_p2pm_tab():
 
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.caption("Upload one or multiple P2PM files. One file gives one cleaned file; "
-               "multiple files are cleaned and merged into one file in the same P2PM format.")
+               "multiple files are cleaned and merged into one file in the same P2PM format "
+               "(dropdowns kept). Cells that need checking are highlighted yellow.")
 
     p2pm_files = st.file_uploader(
         "Select P2PM file(s) (.xlsx, .xls, .csv)",
@@ -728,6 +965,7 @@ def process_p2pm_files(uploaded_files):
     try:
         all_logs = []
         all_dfs = []
+        all_issues = []
         failed = []
         template = None
 
@@ -738,8 +976,9 @@ def process_p2pm_files(uploaded_files):
             if df is None:
                 failed.append({'File Name': file.name, 'Error/Issue': error})
             else:
-                cleaned_df, logs = clean_p2pm_data(df)
+                cleaned_df, logs, issues = clean_p2pm_data(df, file.name)
                 all_dfs.append(cleaned_df)
+                all_issues.extend(issues)
                 all_logs.append(f"📄 {file.name} — {len(cleaned_df)} rows")
                 all_logs.extend(logs)
                 if template is None and file_template is not None:
@@ -756,19 +995,35 @@ def process_p2pm_files(uploaded_files):
             return
 
         if len(all_dfs) == 1:
-            final_df = all_dfs[0]
+            final_df = all_dfs[0].reset_index(drop=True)
         else:
             status_text.text("Merging files...")
             final_df = pd.concat(all_dfs, ignore_index=True, sort=False)
             mobile_col = find_col(final_df, "Mobile No")
             if mobile_col:
                 before = len(final_df)
-                final_df = final_df.drop_duplicates(subset=[mobile_col], keep="first")
+                final_df = final_df.drop_duplicates(subset=[mobile_col], keep="first").reset_index(drop=True)
                 if before > len(final_df):
                     all_logs.append(f"✓ Removed {before - len(final_df)} duplicates from merged data")
 
+        # Map issues to their row in the output file
+        header_row = template['header_row'] if template else 1
+        pos_of = {rid: pos for pos, rid in enumerate(final_df["__row_id"])}
+        highlight = {}
+        issue_rows = []
+        for item in all_issues:
+            pos = pos_of.get(item["__row_id"])
+            if pos is None:   # row removed as duplicate
+                continue
+            highlight.setdefault(pos, []).append(item["Column"])
+            row = {k: v for k, v in item.items() if k != "__row_id"}
+            row = {"Excel Row": header_row + 1 + pos, **row}
+            issue_rows.append(row)
+        issues_df = pd.DataFrame(issue_rows)
+
         status_text.text("Creating Excel file...")
-        final_output = write_p2pm_excel(final_df, template)
+        final_output = write_p2pm_excel(final_df, template, highlight)
+        preview_df = final_df.drop(columns=["__row_id"], errors="ignore")
         progress_bar.progress(1.0)
 
         if len(uploaded_files) == 1:
@@ -785,24 +1040,43 @@ def process_p2pm_files(uploaded_files):
         with col2:
             st.metric("Failed", len(failed))
         with col3:
-            st.metric("Total Rows", len(final_df))
+            st.metric("Total Rows", len(preview_df))
         with col4:
-            st.metric("Columns", len(final_df.columns))
+            st.metric("Cells to Check", len(issues_df))
 
         st.markdown('<div class="section-bar">📄 Preview</div>', unsafe_allow_html=True)
-        st.dataframe(final_df.head(10).fillna(""), use_container_width=True)
+        st.dataframe(preview_df.head(10).fillna(""), use_container_width=True)
 
         if failed:
             st.warning(f"⚠️ {len(failed)} file(s) could not be processed")
             st.dataframe(pd.DataFrame(failed), use_container_width=True)
 
-        st.download_button(
-            "⬇️ Download Cleaned P2PM File",
-            data=final_output.getvalue(),
-            file_name=out_name,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
+        if not issues_df.empty:
+            st.markdown('<div class="section-bar">⚠️ Please Check (highlighted yellow in file)</div>',
+                        unsafe_allow_html=True)
+            st.dataframe(issues_df, use_container_width=True)
+
+        col_dl1, col_dl2 = st.columns(2)
+        with col_dl1:
+            st.download_button(
+                "⬇️ Download Cleaned P2PM File",
+                data=final_output.getvalue(),
+                file_name=out_name,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+        if not issues_df.empty:
+            with col_dl2:
+                issues_buffer = io.BytesIO()
+                with pd.ExcelWriter(issues_buffer, engine="openpyxl") as writer:
+                    issues_df.to_excel(writer, index=False, sheet_name="Check_Report")
+                st.download_button(
+                    "⬇️ Download Check Report",
+                    data=issues_buffer.getvalue(),
+                    file_name=f"P2PM_Check_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
 
         with st.expander("📝 View Cleaning Logs"):
             for log in all_logs:
