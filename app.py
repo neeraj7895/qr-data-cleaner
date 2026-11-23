@@ -410,6 +410,43 @@ def clean_data(df: pd.DataFrame, source_file: Optional[str] = None) -> Tuple[pd.
         logs.append(f"❌ Error: {str(e)}")
         return df, logs
 
+# ---------------------------------------------------------------------------
+# NEW (QR Data Cleaner tab only): add missing acceptance headers at the end
+# ---------------------------------------------------------------------------
+QR_ACCEPTANCE_HEADERS = [
+    "Mobile No", "First Name", "Middle Name", "Last Name", "Entity Name", "DOB", "PAN",
+    "Aadhar No", "GST", "Address Line 1", "Address Line 2", "Pincode", "City", "State",
+    "DOI", "Account No", "Account Holder Name", "Account Type", "Account Sub Type",
+    "IFSC Code", "Account Opening Date", "MCC", "Turnover Type", "Acceptance Type",
+    "Ownership Type", "State Code (GST)", "Latitude", "Longitude", "District",
+    "Branch Name", "Center Name", "Email ID", "Bank Cust  ID", "Card Number", "Card Name",
+    "Card Expiry", "Merchant ID", "Store ID", "Terminal ID", "Brand", "Legal", "Franchise",
+    "Merchant Type", "Merchant Genre", "Onboarding Type"
+]
+
+
+def add_missing_qr_headers(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
+    """
+    Add any header from QR_ACCEPTANCE_HEADERS that is not in the file.
+    Existing columns are untouched. Missing ones are added at the END,
+    in the order of the list above, with empty data (header only).
+    """
+    def _norm(c):
+        return re.sub(r"[\s_]+", "", str(c)).lower()
+
+    existing = {_norm(c) for c in df.columns}
+    added = []
+    df = df.copy()
+    for header in QR_ACCEPTANCE_HEADERS:
+        if _norm(header) not in existing:
+            df[header] = ""
+            existing.add(_norm(header))
+            added.append(header)
+
+    logs = [f"✓ Added missing header(s) at end: {', '.join(added)}"] if added else []
+    return df, logs
+
+
 def add_dropdowns(buffer: io.BytesIO, sheet_name: str = "Cleaned") -> io.BytesIO:
     try:
         buffer.seek(0)
@@ -1183,6 +1220,8 @@ def process_files(uploaded_files):
             status_text.text("Cleaning data...")
             cleaned_df, logs = clean_data(df, uploaded_files[0].name)
             all_logs.extend(logs)
+            cleaned_df, header_logs = add_missing_qr_headers(cleaned_df)
+            all_logs.extend(header_logs)
             current_step += 1
             progress_bar.progress(current_step / total_steps)
 
@@ -1243,6 +1282,9 @@ def process_files(uploaded_files):
                 after = len(merged_df)
                 if before > after:
                     all_logs.append(f"✓ Removed {before - after} duplicates from merged data")
+
+            merged_df, header_logs = add_missing_qr_headers(merged_df)
+            all_logs.extend(header_logs)
 
             status_text.text("Creating merged Excel file...")
             output = io.BytesIO()
