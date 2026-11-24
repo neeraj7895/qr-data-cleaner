@@ -264,6 +264,16 @@ def format_date(x) -> str:
         except Exception:
             pass
 
+    # FIX: year-first dates (e.g. '1990-03-05 00:00:00') - read as year-month-day
+    # so day and month are not swapped when the day is 12 or lower
+    m = re.match(r"^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T].*)?$", str(x).strip())
+    if m:
+        try:
+            dt = datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            return "'" + dt.strftime("%d-%m-%Y")
+        except ValueError:
+            pass
+
     try:
         dt = pd.to_datetime(str(x), dayfirst=True, errors="coerce")
         if pd.isna(dt):
@@ -679,6 +689,37 @@ def guess_gender(first_word: str) -> str:
     return "M"
 
 
+def p2pm_format_date(x) -> str:
+    """
+    P2PM date rule -> 'dd-mm-yyyy (text with leading apostrophe).
+    Handles Excel dates like '1966-04-15 00:00:00' (year first) without
+    swapping day/month, Excel serial numbers, and dd/mm/yyyy text.
+    """
+    if is_blank(x):
+        return ""
+    s = str(x).strip().lstrip("'")
+
+    # Year-first: 1966-04-15 / 1966-04-15 00:00:00 / 1966/04/15
+    m = re.match(r"^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T].*)?$", s)
+    if m:
+        try:
+            dt = datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            return "'" + dt.strftime("%d-%m-%Y")
+        except ValueError:
+            return s
+
+    # Excel serial number (e.g. 36000 or 36000.0)
+    if re.match(r"^\d{4,6}(\.0+)?$", s):
+        try:
+            dt = pd.to_datetime("1899-12-30") + pd.to_timedelta(int(float(s)), unit="D")
+            return "'" + dt.strftime("%d-%m-%Y")
+        except Exception:
+            return s
+
+    # Anything else (16/08/1999, 16-08-1999, 16.08.1999 ...) -> day first
+    return format_date(s)
+
+
 def clean_p2pm_data(df: pd.DataFrame, file_name: str = "") -> Tuple[pd.DataFrame, List[str], List[Dict]]:
     """
     Clean P2PM data.
@@ -715,11 +756,12 @@ def clean_p2pm_data(df: pd.DataFrame, file_name: str = "") -> Tuple[pd.DataFrame
         def mobile_of(idx):
             return df.at[idx, mobile_col] if mobile_col else ""
 
-        # Account Opening Date - same date rule as QR
-        date_col = find_col(df, "Account Opening Date")
-        if date_col:
-            df[date_col] = df[date_col].apply(format_date)
-            logs.append(f"✓ Formatted date column: {date_col}")
+        # Dates -> 'dd-mm-yyyy
+        for date_name in ["DOB", "Account Opening Date"]:
+            date_col = find_col(df, date_name)
+            if date_col:
+                df[date_col] = df[date_col].apply(p2pm_format_date)
+                logs.append(f"✓ Formatted date column: {date_col}")
 
         # Account Number - same rule as QR 'Account No'
         acc_col = find_col(df, "Account Number")
